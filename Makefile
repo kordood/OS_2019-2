@@ -23,7 +23,7 @@ Disk.img: 00.BootLoader/BootLoader.bin
 	@echo 
 
 run:
-	qemu-system-x86_64 -L . -fda Disk.img -m 64 -localtime -M pc
+	qemu-system-x86_64 -L . -fda Disk.img -m 64 -localtime -M pc -rtc base=localtime
 	
 clean:
 	make -C 00.BootLoader clean

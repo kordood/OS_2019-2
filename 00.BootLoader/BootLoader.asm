@@ -24,22 +24,43 @@ START:
 
     mov si, 0
     mov di, 0
+	mov bx, 80 * 2				; for nextline
 
 .MESSAGELOOP:
     mov cl, byte [ si + MESSAGE1 ]
     cmp cl, 0
-    je .MESSAGEEND
+    ;je .MESSAGEEND				  unused
+    je .MESSAGELINE
 
     mov byte [ es: di ], cl
     add si, 1
     add di, 2
+	sub bx, 2					; for nexline
 
     jmp .MESSAGELOOP
+
+.MESSAGELINE:
+	mov si, 0					; initialize si register
+
+	jmp .MESSAGELOOP2
+
+.MESSAGELOOP2:
+	mov cl, byte [ si + MESSAGE2 ]	
+	cmp cl, 0
+
+	je .MESSAGEEND
+
+	mov byte [ es: di + bx], cl	; print to nextline(bx register knows the new line space!)
+	add si, 1
+	add di, 2
+
+	jmp .MESSAGELOOP2
 
 .MESSAGEEND:
     jmp $
 
 MESSAGE1:    db 'MINT64 OS Boot Loader Start~!!', 0
+MESSAGE2:    db 'Boot Loader my message Start~!!', 0
 
 times 510 - ( $ - $$ )    db    0x00
 
