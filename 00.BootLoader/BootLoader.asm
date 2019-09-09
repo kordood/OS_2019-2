@@ -107,8 +107,121 @@ START:
 	add al, 48
 	mov [CLOCK_STRING+15], al
 
+	call .GETYOIL
+
 	popa
 	ret
+
+.GETYOIL:
+	mov ax, cx
+	mov bx, dx
+	push cx
+	push dx
+
+	mov cx, ax					; cx <--- [ YY | YY ]
+	call .CALCYYYY
+	mov ax, cx
+
+	mov cx, bx					; cx <--- [ MM | DD ]
+	call .CALCMMDD
+
+	pop dx
+	pop cx
+	ret
+
+.CALCYYYY:
+	push bx						; save MMDD
+	mov dh, 19
+	mov dl, 00					; dx <--- [ 19 | 00 ]
+
+	mov al, ch
+	and al, 0x0F				; 1's place
+	mov bl, al
+
+	mov al, ch					; century
+	shr al, 4
+
+	mov bh, 10					; 10's place
+	mul bh
+
+	add bl, al
+	sub bl, dh					; century(year) - 19(00)
+
+	mov ax, bx					; result 100's place
+	mov bx, 100
+	mul bx
+	mov bx, ax
+	
+	mov al, cl
+	and al, 0x0F				; year
+	add bl, al
+
+	mov al, cl
+	shr al, 4
+	mov ch, 10
+	mul ch
+	add bl, al
+	sub bl, dl					; bx contains result of yyyy - 1900		ex) [ 119 ]
+
+	mov cx, bx					; result
+
+	call .YOIL1
+
+	pop bx
+	ret
+
+.YOIL1:
+	mov ax, cx
+	mov dx, 4
+	div dx						; ex) 119 / 4 = ax ... dx
+	mov bx, ax
+
+	mov ax, cx
+	mov dx, 100
+	div dx
+	sub bx, ax					; ex) 29 - floor(119 / 100) = 28(bx)
+
+	mov ax, cx
+	mov dx, 400
+	div dx
+	mov ax, dx
+	mov dx, 100
+	div dx
+	add bx, ax					; ex) 28(bx) + floor(119 mod(400)) / 100) = 29(bx)
+
+	sub cx, bx					; ex) cx: 119 - 29, bx: 29
+
+	mov ax, cx
+	mov dx, 7
+	div dx
+	mov ax, dx
+	mov dl, 1
+	mul dl 						; ex) 90 mod(7) * 365 mod(7)
+	mov cx, ax
+
+	mov ax, bx
+	mov dx, 7
+	div dx
+	mov ax, dx
+	mov dl, 2
+	mul dl						; ex) 29 mod(7) * 366 mod(7)
+
+	add ax, cx
+	mov dx, 7
+	div dx
+	mov cx, dx					; cx mod(7)
+
+
+
+
+.CALCMMDD:
+	push ax
+	mov dh, 01
+	mov dl, 01					; dx <--- [ 01 | 01 ]
+
+	pop ax
+	ret
+
 
 MESSAGE1:    db 'MINT64 OS Boot Loader Start~!!', 0
 CLOCK_STRING: db 'Current Data: 00/00/0000 FFF', 0
