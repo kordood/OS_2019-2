@@ -89,7 +89,7 @@ START:
 	mul cl
 	add bl, al
 	pop cx
-	
+	ret
 
 .GETRTC:
 	pusha
@@ -97,8 +97,7 @@ START:
 	mov ah, 4h					; Select 'Read RTC Calendar'
 	int 1Ah						; RTC sevices interrupt
 
-	mov word[CCYY], cx
-	mov word[MMDD], dx
+	mov word[RTC], cx
 
 	mov al, ch
 	call .BCDTOASCII
@@ -126,11 +125,12 @@ START:
 	ret
 
 .GETYOIL:
-	mov cx, word[CCYY]			; cx <--- [ YY | YY ]
+	mov cx, word[RTC]			; cx <--- [ YY | YY ]
+	mov word[RTC], dx
 	call .CALCYYYY
 	mov ax, cx
 
-	mov dx, word[MMDD]			; dx <--- [ MM | DD ]
+	mov dx, word[RTC]			; dx <--- [ MM | DD ]
 	push ax
 	;call .CALCMM
 	pop ax
@@ -175,13 +175,10 @@ START:
 	div bx
 	sub cx, ax					; ex) 29 - floor(119 / 100) = 28(bx)
 
-	mov ax, word[YEARGAP]
-	mov bx, 400
-	div bx
-	mov ax, dx
 	mov dx, 0					; Sanitize dx
-	mov bx, 100
+	mov bx, 4
 	div bx						; ex) floor(119 mod(400) / 100)
+
 	cmp ax, 1
 	jne .YOIL1_PASS1
 	
@@ -198,73 +195,68 @@ START:
 
 .YOIL1_PASS1:
 	add cx, ax					; ex) 28(bx) + floor(119 mod(400)) / 100) = 29(bx)
+	mov ax, cx
+	mov dx, 0					; Sanitize dx
+	mov bx, 7
+	cmp ax, 0
+	je .PASS
+	div bx
+	mov cx, dx					; ex) cx = 29 mod 7
 
-	sub word[YEARGAP], bx		; ex) cx: 119 - 29, bx: 29
-	push bx
-
+.PASS:
 	mov ax, word[YEARGAP]
 	mov dx, 0					; Sanitize dx
 	mov bx, 7
 	div bx						; ex) 90 mod(7) * 365 mod(7) = 6 * 1(const)
-	mov cx, dx					; cx = result
-
-	pop ax						; pop bx + mov ax, bx
-
-	mov bx, 7
-	div bx
-	mov ax, dx
-	mov bx, 2
-	mul bx						; ex) 29 mod(7) * 366 mod(7) = 1 * 2(const)
-
-	add ax, cx
-	mov bx, 7
-	div bx
-	mov cx, dx					; ex) cx = (90 mod(7) * 365 mod(7) +  29 mod(7) * 366 mod(7)) mod(7)
+	add cx, dx					; cx = result
 
 	ret
 
 .CALCMM:
 	mov al, dh					; month(bcd)
+	mov ch, 1					; FEB flag set
 	call .HEXCONVERT
 	mov cx, 0
+	push dx
+	mov dx, 0
 
 .MONTHLOOP:
 	sub bl, 1					; month--
 	cmp bl, 0
 	je .CALCDD					; if(month == 0) jmp .CALCDD
 	
-	add cl, 1					; index++
-	mov al, byte[IDXMONTH + 1]
-
-	cmp al, 1
+	add cl, 1
+	and cl, 0x01
+	cmp cl, 1
 	je .MONTH31
-	
-	cmp al, 2
-	je .MONTH30
+
+	cmp ch, 1
+	jne .MONTH30
+	mov ch, 0
 
 	cmp byte[YOONFLAG], 1					; isYoon compare to 1
 	je .IFYOON
 	
-	add word[DATE], 28
+	add dx, 28
 	jmp .MONTHLOOP
 
 .IFYOON:
-	add word[DATE], 29
+	add dx, 29
 	jmp .MONTHLOOP
 
 .MONTH31:
-	add word[DATE], 31
+	add dx, 31
 	jmp .MONTHLOOP
 
 .MONTH30:
-	add word[DATE], 30
+	add dx, 30
 	jmp .MONTHLOOP
 
 .CALCDD:
-	mov al, dl					; date(bcd)
+	pop ax						; pop dx, mov ax, dx(date(bcd))
 	call .HEXCONVERT
 
-	mov ax, word[DATE]			; month(each date) + date
+	mov ax, dx				; month(each date) + date
 	add al, bl
 	mov cx, 7
 	div cx						; dx is index of yoil
@@ -279,12 +271,9 @@ START:
 
 MESSAGE1:		db 'MINT64 OS Boot Loader Start~!!', 0
 CLOCK_STRING:	db 'Current Data: 00/00/0000 FFF', 0
-YOIL:			db 'MONTUEWEDTHUFRISATSUN', 0
+;YOIL:			db 'MONTUEWEDTHUFRISATSUN', 0
 
-CCYY: dw 0
-MMDD: dw 0
-IDXMONTH:	db '131212112121', 0
-DATE:			dw 0
+RTC: dw 0
 YEARGAP:		dw 0
 YOONFLAG:		db 0
 
