@@ -132,13 +132,11 @@ START:
 
 	mov dx, word[RTC]			; dx <--- [ MM | DD ]
 	push ax
-	;call .CALCMM
+	call .CALCMM
 	pop ax
 	
 	;add ax, result		mov bx, 7		div bx		dx = index
 
-	pop dx
-	pop cx
 	ret
 
 .CALCYYYY:
@@ -255,16 +253,17 @@ START:
 .CALCDD:
 	pop ax						; pop dx, mov ax, dx(date(bcd))
 	call .HEXCONVERT
+	mov bh, 0					; Sanitize bh(for add ax, bx)
 
-	mov ax, dx				; month(each date) + date
-	add al, bl
+	mov ax, dx					; month(each date) + date
+	mov dx, 0					; Sanitize dx
+	add ax, bx
 	mov cx, 7
 	div cx						; dx is index of yoil
 
 	mov ax, dx
-	mov dx, 0
-	mov cx, 3
-	mul cx
+	add al, 48
+	mov byte[CLOCK_STRING + 25], al
 
 	ret
 	
