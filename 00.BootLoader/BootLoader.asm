@@ -54,7 +54,7 @@ START:
 	cmp cl, 0
 	je .MESSAGEINIT
 
-    mov byte [ es: di ], cl
+    mov byte [ es: di  + bx ], cl
 	inc si
     add di, 2
 
