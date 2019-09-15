@@ -21,42 +21,44 @@ START:
     cmp si, 80 * 25 * 2
 
     jl .SCREENCLEARLOOP
+	
+	call .GETRTC
+	mov ax, -1
+	sub bx, 80 * 2				; first line
 
+.MESSAGEINIT:
     mov si, 0
     mov di, 0
-	mov bx, 80 * 2				; for nextline
-	call .GETRTC
+	add bx, 80 * 2				; for nextline
+	inc ax
 
-
-.MESSAGELOOP:
-    mov cl, byte [ si + MESSAGE1 ]
-    cmp cl, 0
-    ;je .MESSAGEEND				  unused
-    je .MESSAGELINE
-
-    mov byte [ es: di ], cl
-    add si, 1
-    add di, 2
-	sub bx, 2					; for nexline
-
-    jmp .MESSAGELOOP
-
-.MESSAGELINE:
-	mov si, 0					; Initialize si register
-
-	jmp .MESSAGELOOP2
-
-.MESSAGELOOP2:
-	mov cl, byte [ si + CLOCK_STRING ]	
-	cmp cl, 0
-
+	cmp ax, 3					; MAXLINE
 	je .MESSAGEEND
 
-	mov byte [ es: di + bx], cl	; print to nextline(bx register knows the new line space!)
-	add si, 1
-	add di, 2
+.MESSAGELOOP:
+	cmp ax, 1
+	jge .NEXT1
+    mov cl, byte [ si + MESSAGE1 ]
+	jmp .PRINT
 
-	jmp .MESSAGELOOP2
+.NEXT1:
+	cmp ax, 2
+	jge .NEXT2
+	mov cl, byte[ si + CLOCK_STRING ]
+	jmp .PRINT
+
+.NEXT2:
+	mov cl, byte[ si + MESSAGE2 ]
+
+.PRINT:
+	cmp cl, 0
+	je .MESSAGEINIT
+
+    mov byte [ es: di ], cl
+	inc si
+    add di, 2
+
+    jmp .MESSAGELOOP
 
 .MESSAGEEND:
     jmp $
@@ -97,6 +99,8 @@ START:
 	mov ah, 4h					; Select 'Read RTC Calendar'
 	int 1Ah						; RTC sevices interrupt
 
+	add dl, 0
+
 	mov word[RTC], cx
 
 	mov al, ch
@@ -128,14 +132,24 @@ START:
 	mov cx, word[RTC]			; cx <--- [ YY | YY ]
 	mov word[RTC], dx
 	call .CALCYYYY
-	mov ax, cx
 
 	mov dx, word[RTC]			; dx <--- [ MM | DD ]
-	push ax
 	call .CALCMM
-	pop ax
-	
-	;add ax, result		mov bx, 7		div bx		dx = index
+
+	push si
+	mov si, dx
+
+	mov ah, byte[YOIL + si]
+	mov al, byte[YOIL + si+1]
+	mov bh, byte[YOIL + si+2]
+	add ah, 48
+	add al, 48
+	add bh, 48
+	mov byte[CLOCK_STRING + 25], ah
+	mov byte[CLOCK_STRING + 26], al
+	mov byte[CLOCK_STRING + 27], bh
+
+	pop si
 
 	ret
 
@@ -261,16 +275,12 @@ START:
 	mov cx, 7
 	div cx						; dx is index of yoil
 
-	mov ax, dx
-	add al, 48
-	mov byte[CLOCK_STRING + 25], al
-
 	ret
-	
 
 MESSAGE1:		db 'MINT64 OS Boot Loader Start~!!', 0
 CLOCK_STRING:	db 'Current Data: 00/00/0000 FFF', 0
-;YOIL:			db 'MONTUEWEDTHUFRISATSUN', 0
+MESSAGE2:		db 'OS Image Loading… Complete~!!', 0
+YOIL:			db 'SUNMONTUEWEDTHUFRISAT', 0
 
 RTC: dw 0
 YEARGAP:		dw 0
