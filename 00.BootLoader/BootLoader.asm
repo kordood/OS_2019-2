@@ -70,9 +70,8 @@ START:
 	shr al, 4					; 10's place
 	mov bh, al
 	
-	mov al, cl
-	and al, 0x0F				; 1's place
-	mov bl, al
+	and cl, 0x0F				; 1's place
+	mov bl, cl
 
 	pop cx
 	ret
@@ -83,7 +82,7 @@ START:
 	add bl, 48
 	ret
 
-.HEXCONVERT:
+.HEXCONVERT:				; arg: ax, result: bx
 	call .BCDTOHEX
 	push cx
 	mov al, bh
@@ -93,67 +92,64 @@ START:
 	pop cx
 	ret
 
+.CYMD:
+	call .BCDTOASCII
+.CYMDREUSE:
+	mov [ CLOCK_STRING + si ], bh
+	inc si
+	mov [ CLOCK_STRING + si ], bl
+	ret
+
 .GETRTC:
 	pusha
 
 	mov ah, 4h					; Select 'Read RTC Calendar'
 	int 1Ah						; RTC sevices interrupt
 
-	add dl, 0
+    mov al, ch
+    mov si, 20
+    call .CYMD					; Get century
 
-	mov word[RTC], cx
+    mov al, cl                  ; Get year
+    mov si, 22
+    call .CYMD
 
-	mov al, ch
-	call .BCDTOASCII
-	mov [CLOCK_STRING+20], bh	; Saving to string
-	mov [CLOCK_STRING+21], bl
+    mov al, dh                  ; Get month
+    mov si, 17
+    call .CYMD
 
-	mov al, cl					; Get year
-	call .BCDTOASCII
-	mov [CLOCK_STRING+22], bh
-	mov [CLOCK_STRING+23], bl
-
-	mov al, dh					; Get month
-	call .BCDTOASCII
-	mov [CLOCK_STRING+17], bh
-	mov [CLOCK_STRING+18], bl
-
-	mov al, dl					; Get date
-	call .BCDTOASCII
-	mov [CLOCK_STRING+14], bh
-	mov [CLOCK_STRING+15], bl
+    mov al, dl                  ; Get date
+    mov si, 14
+    call .CYMD
 
 	call .GETYOIL
 
 	popa
 	ret
 
-.GETYOIL:
-	mov cx, word[RTC]			; cx <--- [ YY | YY ]
-	mov word[RTC], dx
-	call .CALCYYYY
+.GETYOIL:						; cx <--- [ CC | YY ], dx <--- [ MM | DD ]
+	push dx
+	call .CALCCCYY
+	pop dx
 
-	mov dx, word[RTC]			; dx <--- [ MM | DD ]
 	call .CALCMM
 
-	push si
 	mov si, dx
 
-	mov ah, byte[YOIL + si]
-	mov al, byte[YOIL + si+1]
-	mov bh, byte[YOIL + si+2]
-	add ah, 48
-	add al, 48
-	add bh, 48
-	mov byte[CLOCK_STRING + 25], ah
-	mov byte[CLOCK_STRING + 26], al
-	mov byte[CLOCK_STRING + 27], bh
+	sub si, 2
+	mov bh, byte[ YOIL + si ]
+	mov bl, byte[ YOIL + si + 1 ]
+	mov cl, byte[ YOIL + si + 2 ]
+	
+	mov si, 25
+	call .CYMDREUSE
+	inc si
 
-	pop si
+	mov byte[ CLOCK_STRING + si ], cl
 
 	ret
 
-.CALCYYYY:
+.CALCCCYY:
 	mov al, ch					; century
 	call .HEXCONVERT
 	
@@ -168,7 +164,7 @@ START:
 	mov cx, bx					; result move to cx
 	call .HEXCONVERT
 
-	sub cx, 00					; (century)year - (19)00
+	;sub cx, 00					 (century)year - (19)00
 
 	mov word[YEARGAP], cx
 
@@ -206,14 +202,16 @@ START:
 	mov byte[YOONFLAG], 1		; save isYoon 1
 
 .YOIL1_PASS1:
-	add cx, ax					; ex) 28(bx) + floor(119 mod(400)) / 100) = 29(bx)
-	mov ax, cx
+	add ax, cx					; ex) 28(bx) + floor(119 mod(400)) / 100) = 29(bx)
+	cmp ax, 0					; avoid 0 divide
+	je .PASS
 	mov dx, 0					; Sanitize dx
 	mov bx, 7
-	cmp ax, 0
-	je .PASS
 	div bx
-	mov cx, dx					; ex) cx = 29 mod 7
+	mov ax, dx					; ex) ax = 29 mod 7
+	mov bx, 2
+	mul bx
+	mov cx, ax					; ex) cx = (29 mod 7) * (366 mod 7) = 1 * 2
 
 .PASS:
 	mov ax, word[YEARGAP]
@@ -224,54 +222,58 @@ START:
 
 	ret
 
-.CALCMM:
+.CALCMM:						; dx: MM | DD, cl: calcCCYY result
 	mov al, dh					; month(bcd)
-	mov ch, 1					; FEB flag set
 	call .HEXCONVERT
-	mov cx, 0
-	push dx
-	mov dx, 0
+	mov al, bl					; al: cmpMonth, bl: month
+	mov bh, 1					; bh: isFEB flag set
+	mov ah, 0					; ah: cmp31
+
+	push dx						; save date
 
 .MONTHLOOP:
-	sub bl, 1					; month--
-	cmp bl, 0
-	je .CALCDD					; if(month == 0) jmp .CALCDD
+	cmp al, 7
+	jle .CMP31					; if(cmpMonth <= 7) means before July
 	
-	add cl, 1
-	and cl, 0x01
-	cmp cl, 1
-	je .MONTH31
+	xor al, ah
+	and al, 0x01
+	je .MONTH30					; if((cmpMonth ^ cmp31) & 1)
+	add cx, 31
+	jmp .ENDPOINT
 
-	cmp ch, 1
-	jne .MONTH30
-	mov ch, 0
-
-	cmp byte[YOONFLAG], 1					; isYoon compare to 1
-	je .IFYOON
-	
-	add dx, 28
+.CMP31:
+	mov ah, 1
 	jmp .MONTHLOOP
+
+.MONTH30:						; else
+	cmp bh, 1					; if(isFEB)
+	je .FEBRUARY
+	add cx, 30
+	jmp .ENDPOINT
+
+.FEBRUARY:
+	mov bh, 0
+	cmp byte[ YOONFLAG ], 1		; if(yoonFlag)
+	je .IFYOON
+	add cx, 28
+	jmp .ENDPOINT
 
 .IFYOON:
-	add dx, 29
-	jmp .MONTHLOOP
+	add cx, 29
+	jmp .ENDPOINT
 
-.MONTH31:
-	add dx, 31
-	jmp .MONTHLOOP
+.ENDPOINT:
+	cmp bl, al
+	jl .MONTHLOOP				; while(month >= cmpMonth)
 
-.MONTH30:
-	add dx, 30
-	jmp .MONTHLOOP
-
-.CALCDD:
+.CALCDD:						; cx: monthResult, dl: DD
 	pop ax						; pop dx, mov ax, dx(date(bcd))
 	call .HEXCONVERT
-	mov bh, 0					; Sanitize bh(for add ax, bx)
+	mov al, 0
+	add al, bl					; day += monthResult
 
-	mov ax, dx					; month(each date) + date
+	mov ax, cx					; date + monthResult
 	mov dx, 0					; Sanitize dx
-	add ax, bx
 	mov cx, 7
 	div cx						; dx is index of yoil
 
@@ -279,10 +281,9 @@ START:
 
 MESSAGE1:		db 'MINT64 OS Boot Loader Start~!!', 0
 CLOCK_STRING:	db 'Current Data: 00/00/0000 FFF', 0
-MESSAGE2:		db 'OS Image Loading… Complete~!!', 0
+MESSAGE2:		db 'OS Image Loading... Complete~!!', 0
 YOIL:			db 'SUNMONTUEWEDTHUFRISAT', 0
 
-RTC: dw 0
 YEARGAP:		dw 0
 YOONFLAG:		db 0
 
