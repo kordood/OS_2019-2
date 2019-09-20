@@ -9,11 +9,10 @@
 
 SECTION .text
 
-jmp 0x1000:START
+jmp 0x1020:START
 
 SECTORCOUNT:        dw  0x0000
 TOTALSECTORCOUNT    equ 1023
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; SECTION: CODE
@@ -43,7 +42,7 @@ START:
         %if i == TOTALSECTORCOUNT
             jmp $
         %else
-            jmp ( 0x1000 + i * 0x20 ): 0x0000
+            jmp ( 0x1020 + i * 0x20 ): 0x0000
         %endif
         
         times ( 512 - ( $ - $$ ) % 512 )    db 0x00

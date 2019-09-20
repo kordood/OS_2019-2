@@ -1,5 +1,5 @@
-	mov bx, cs
-	push bx
+	mov ax, cs
+	push ax
 	mov ax, 0x1000
 	mov ds, ax
 
@@ -80,6 +80,7 @@ GETRTC:
     mov si, 17
     call .CYMD
 
+	;add dl, 1					; debug date
     mov al, dl                  ; Get date
     mov si, 14
     call .CYMD
@@ -133,9 +134,14 @@ GETRTC:
 
 	call .CALCMM
 
-	mov si, dx
+	
+	mov al, dl
+	mov bl, 3
+	mul bl
+	mov si, ax
+	;add dl, 48							; for debug
+	;mov byte [ CLOCK_STRING ], dl		; for debug
 
-	sub si, 2
 	mov bh, byte[ YOIL + si ]
 	mov bl, byte[ YOIL + si + 1 ]
 	mov cl, byte[ YOIL + si + 2 ]
@@ -285,6 +291,6 @@ IMAGELOADINGMESSAGE:	db 'OS Image Loading... ', 0
 YEARGAP:		dw 0
 YOONFLAG:		db 0
 
-times ( 512 - ( $ - $$ ) % 510 )    db 0x00
+times ( 510 - ( $ - $$ ) % 510 )    db 0x00
 db 0x55
 db 0xAA
