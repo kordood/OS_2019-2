@@ -1,22 +1,20 @@
-	mov ax, cs
+	mov bx, cs
+	push bx
+	mov ax, 0x1000
 	mov ds, ax
-	mov ax, 0xB800
-	mov es, ax
 
 	call GETRTC
 	push CLOCK_STRING
 	push 1
 	push 0
-	call PRINTMESSAGE
+	call PRINTMESSAGE1
 	add sp, 6
 
-	push IMAGELOADINGMESSAGE
-	push 2
-	push 0
-	call PRINTMESSAGE
-	add sp, 6
+	pop ax
+	mov ds, ax
+	ret
 
-PRINTMESSAGE:
+PRINTMESSAGE1:
 	push bp
 	mov bp, sp
 
@@ -287,4 +285,6 @@ IMAGELOADINGMESSAGE:	db 'OS Image Loading... ', 0
 YEARGAP:		dw 0
 YOONFLAG:		db 0
 
-times ( 512 - ( $ - $$ ) % 512 )    db 0x00
+times ( 512 - ( $ - $$ ) % 510 )    db 0x00
+db 0x55
+db 0xAA

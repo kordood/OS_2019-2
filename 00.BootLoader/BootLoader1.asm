@@ -46,6 +46,16 @@ START:
 	call PRINTMESSAGE
 	add sp, 6
 
+	call RESETDISK
+	call 0x07C0:0x8400
+
+	push IMAGELOADINGMESSAGE
+	push 2
+	push 0
+	call PRINTMESSAGE
+	add sp, 6
+	jmp READDATA
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;	Image loading start
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,6 +87,15 @@ READDATA:
 	int 0x13
 	jc HANDLEDISKERROR
 
+	cmp ch, 0
+	jne .PASS
+	cmp dh, 0
+	jne .PASS
+	cmp cl, 2
+	jne .PASS
+	ret
+
+.PASS:
 	add si, 0x0020
 
 	mov es, si
@@ -101,7 +120,7 @@ READEND:
 	call PRINTMESSAGE
 	add sp, 6
 
-	jmp 0x1000:0x0000
+	jmp 0x1020:0x0000
 
 HANDLEDISKERROR:
 	push DISKERRORMESSAGE
@@ -164,6 +183,7 @@ MESSAGE1:				db 'MINT64 OS Boot Loader Start~!!', 0
 IMAGELOADINGMESSAGE:	db 'OS Image Loading... ', 0
 LOADINGCOMPLETEMESSAGE:	db 'Complete~!!', 0
 DISKERRORMESSAGE:		db 'DISK Error~!!', 0
+TMP: db "DBG", 0
 
 SECTORNUMBER:			db 0x02
 HEADNUMBER:				db 0x00
