@@ -12,7 +12,7 @@ SECTION .text
 jmp 0x1020:START
 
 SECTORCOUNT:        dw  0x0000
-TOTALSECTORCOUNT    equ 1023
+TOTALSECTORCOUNT    equ 1024
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; SECTION: CODE
