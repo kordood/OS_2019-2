@@ -80,7 +80,6 @@ GETRTC:
     mov si, 17
     call .CYMD
 
-	;add dl, 1					; debug date
     mov al, dl                  ; Get date
     mov si, 14
     call .CYMD
@@ -169,8 +168,12 @@ GETRTC:
 	mov cx, bx					; result move to cx
 	call .HEXCONVERT
 
+	add cx, bx
+
+
 	;sub cx, 00					 (century)year - (19)00
 
+	mov ch, 0					; sanitize ch
 	mov word[YEARGAP], cx
 
 	call .YEARYOON
@@ -225,6 +228,7 @@ GETRTC:
 	div bx						; ex) 90 mod(7) * 365 mod(7) = 6 * 1(const)
 	add cx, dx					; cx = result
 
+
 	ret
 
 .CALCMM:						; dx: MM | DD, cl: calcCCYY result
@@ -233,6 +237,7 @@ GETRTC:
 	mov al, bl					; al: cmpMonth, bl: month
 	mov bh, 1					; bh: isFEB flag set
 	mov ah, 0					; ah: cmp31
+
 
 	push dx						; save date
 
@@ -274,10 +279,10 @@ GETRTC:
 .CALCDD:						; cx: monthResult, dl: DD
 	pop ax						; pop dx, mov ax, dx(date(bcd))
 	call .HEXCONVERT
-	mov al, 0
+	mov al, 1
 	add al, bl					; day += monthResult
 
-	mov ax, cx					; date + monthResult
+	add ax, cx					; date + monthResult
 	mov dx, 0					; Sanitize dx
 	mov cx, 7
 	div cx						; dx is index of yoil
@@ -285,12 +290,10 @@ GETRTC:
 	ret
 
 CLOCK_STRING:			db 'Current Data: 00/00/0000 FFF', 0
-YOIL:					db 'SUNMONTUEWEDTHUFRISAT', 0
+YOIL:					db 'MONTUEWEDTHUFRISATSUN', 0
 IMAGELOADINGMESSAGE:	db 'OS Image Loading... ', 0
 
 YEARGAP:		dw 0
 YOONFLAG:		db 0
 
-times ( 510 - ( $ - $$ ) % 510 )    db 0x00
-db 0x55
-db 0xAA
+times ( 512 - ( $ - $$ ) % 512 )    db 0x00
