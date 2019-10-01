@@ -49,7 +49,7 @@ PROTECTEDMODE:
     mov ebp, 0xFFFE     ; EBP
 
     push ( SWITCHSUCCESSMESSAGE - $$ + 0x10200 )
-    push 2
+    push 3
     push 0
     call PRINTMESSAGE
     add esp, 12
