@@ -10,7 +10,7 @@ SECTION .text
 
 jmp 0x07C0:START
 
-TOTALSECTORCOUNT:   dw  2
+TOTALSECTORCOUNT:   dw  3
 
 START:
     mov ax, 0x07C0

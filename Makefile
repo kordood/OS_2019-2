@@ -46,7 +46,7 @@ Utility:
 
 
 run:
-	qemu-system-x86_64 -monitor tcp:127.0.0.1:55555,server,nowait -L . -fda Disk.img -m 64 -localtime -M pc -rtc base=localtime 
+	qemu-system-x86_64 -monitor tcp:127.0.0.1:55555,server,nowait -L . -fda Disk.img -m 64 -localtime -M pc -rtc base=localtime
 	
 clean:
 	make -C 00.BootLoader clean
