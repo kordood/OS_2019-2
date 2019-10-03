@@ -10,7 +10,7 @@ SECTION .text
 
 jmp 0x07C0:START
 
-TOTALSECTORCOUNT:   dw  3
+TOTALSECTORCOUNT:   dw  0x03
 
 START:
     mov ax, 0x07C0
@@ -51,8 +51,9 @@ START:
 BOOT2:
 
 	pusha
+	
 
-	call 0x07C0:0x8400
+	call 0x07C0:0x0200
 	
 	popa
 
@@ -63,8 +64,8 @@ BOOT2:
 	add sp, 6
 
 	mov di, word [ TOTALSECTORCOUNT ]		; re initialize
-	sub di, 0x1
-	mov si, 0x1020
+
+	mov si, 0x1000
 	mov es, si
 
 	mov bx, 0x0000
@@ -81,7 +82,7 @@ RESETDISK:
 
 	jc HANDLEDISKERROR
 
-	mov si, 0x1000
+	mov si, 0x07e0
 
 	mov es, si
 	mov bx, 0x0000
@@ -133,7 +134,7 @@ READEND:
 	push 20
 	call PRINTMESSAGE
 	add sp, 6
-	jmp 0x1020:0x0000
+	jmp 0x1000:0x0000
 
 HANDLEDISKERROR:
 	push DISKERRORMESSAGE

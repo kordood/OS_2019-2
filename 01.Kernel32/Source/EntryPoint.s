@@ -13,7 +13,8 @@ SECTION .text
 ;   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 START:
-    mov ax, 0x1020  ; 0x10000
+    mov ax, 0x1000  ; 0x10000
+
 
     mov ds, ax      ; DS 
     mov es, ax      ; ES 
@@ -28,7 +29,7 @@ START:
     mov eax, 0x4000003B ; PG=0, CD=1, NW=0, AM=0, WP=0, NE=1, ET=1, TS=1, EM=0, MP=1, PE=1
     mov cr0, eax        ; CR0
 
-    jmp dword 0x08: ( PROTECTEDMODE - $$ + 0x10200 )
+    jmp dword 0x08: ( PROTECTEDMODE - $$ + 0x10000 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -48,13 +49,13 @@ PROTECTEDMODE:
     mov esp, 0xFFFE     ; ESP
     mov ebp, 0xFFFE     ; EBP
 
-    push ( SWITCHSUCCESSMESSAGE - $$ + 0x10200 )
+    push ( SWITCHSUCCESSMESSAGE - $$ + 0x10000 )
     push 3
     push 0
     call PRINTMESSAGE
     add esp, 12
 
-	jmp dword 0x08: 0x10400
+	jmp dword 0x08: 0x10200
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -121,7 +122,7 @@ dw 0x0000
 ; GDTR
 GDTR:
     dw GDTEND - GDT - 1
-    dd ( GDT - $$ + 0x10200 )
+    dd ( GDT - $$ + 0x10000 )
 
 ; GDT
 GDT:

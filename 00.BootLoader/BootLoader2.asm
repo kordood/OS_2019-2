@@ -1,6 +1,6 @@
 	mov ax, cs
 	push ax
-	mov ax, 0x1000
+	mov ax, 0x07e0
 	mov ds, ax
 
 	call GETRTC
