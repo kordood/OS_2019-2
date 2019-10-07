@@ -33,11 +33,6 @@ START:
 	mul si
 	mov di, ax
 
-	mov ax, 0
-	mov si, 2
-	mul si
-	add di, ax
-
     mov si, PRINTRAM
 
 .MESSAGELOOP:
@@ -156,16 +151,16 @@ lgdt [ GDTR ]
 	mov eax, 0x4000003B ; PG=0, CD=1, NW=0, AM=0, WP=0, NE=1, ET=1, TS=1, EM=0, MP=1, PE=1
 	mov cr0, eax        ; CR0
 
-	jmp dword 0x08: ( PROTECTEDMODE - $$ + 0x10000 )
+	jmp dword 0x18: ( PROTECTEDMODE - $$ + 0x10000 )
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;
 	;
 	;
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	[BITS 32]
-	PROTECTEDMODE:
-	mov ax, 0x10
+[BITS 32]
+PROTECTEDMODE:
+	mov ax, 0x20
 	mov ds, ax          ; DS
 	mov es, ax          ; ES
 	mov fs, ax          ; FS
@@ -176,13 +171,13 @@ lgdt [ GDTR ]
 	mov esp, 0xFFFE     ; ESP
 	mov ebp, 0xFFFE     ; EBP
 
-push ( SWITCHSUCCESSMESSAGE - $$ + 0x10000 )
-	push 3
+	push ( SWITCHSUCCESSMESSAGE - $$ + 0x10000 )
+	push 4
 	push 0
 	call PRINTMESSAGE
 	add esp, 12
 
-	jmp dword 0x08: 0x10200
+	jmp dword 0x18: 0x10200
 
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -251,34 +246,49 @@ GDTR:
 	dw GDTEND - GDT - 1
 dd ( GDT - $$ + 0x10000 )
 
-	; GDT
-	GDT:
+; GDT
+GDT:
 
 NULLDescriptor:
-dw 0x0000
-dw 0x0000
-db 0x00
-db 0x00
-db 0x00
-db 0x00
+	dw 0x0000
+	dw 0x0000
+	db 0x00
+	db 0x00
+	db 0x00
+	db 0x00
+	
+IA_32eCODEDESCRIPTOR:
+    dw 0xFFFF       ; Limit [15:0]
+	dw 0x0000       ; Base [15:0]
+	db 0x00         ; Base [23:16]
+	db 0x9A         ; P=1, DPL=0, Code Segment, Execute/Read
+	db 0xAF         ; G=1, D=0, L=1, Limit[19:16]
+	db 0x00         ; Base [31:24] 
 
+    IA_32eDATADESCRIPTOR:
+	dw 0xFFFF       ; Limit [15:0]
+	dw 0x0000       ; Base [15:0]
+	db 0x00         ; Base [23:16]
+	db 0x92         ; P=1, DPL=0, Data Segment, Read/Write
+	db 0xAF         ; G=1, D=0, L=1, Limit[19:16]
+	db 0x00         ; Base [31:24]
 
 CODEDESCRIPTOR:     
-dw 0xFFFF       ; Limit [15:0]
-dw 0x0000       ; Base [15:0]
-db 0x00         ; Base [23:16]
-db 0x9A         ; P=1, DPL=0, Code Segment, Execute/Read
-db 0xCF         ; G=1, D=1, L=0, Limit[19:16]
-db 0x00         ; Base [31:24]  
+	dw 0xFFFF       ; Limit [15:0]
+	dw 0x0000       ; Base [15:0]
+	db 0x00         ; Base [23:16]
+	db 0x9A         ; P=1, DPL=0, Code Segment, Execute/Read
+	db 0xCF         ; G=1, D=1, L=0, Limit[19:16]
+	db 0x00         ; Base [31:24]  
 
 
 DATADESCRIPTOR:
-dw 0xFFFF       ; Limit [15:0]
-dw 0x0000       ; Base [15:0]
-db 0x00         ; Base [23:16]
-db 0x92         ; P=1, DPL=0, Data Segment, Read/Write
-db 0xCF         ; G=1, D=1, L=0, Limit[19:16]
-db 0x00         ; Base [31:24]
+	dw 0xFFFF       ; Limit [15:0]
+	dw 0x0000       ; Base [15:0]
+	db 0x00         ; Base [23:16]
+	db 0x92         ; P=1, DPL=0, Data Segment, Read/Write
+	db 0xCF         ; G=1, D=1, L=0, Limit[19:16]
+	db 0x00         ; Base [31:24]
 GDTEND:
 
 SWITCHSUCCESSMESSAGE: db 'Switch To Protected Mode Success~!!', 0
