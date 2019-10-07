@@ -84,6 +84,7 @@ GETRTC:
     mov si, 14
     call .CYMD
 
+	;add dl, 5
 	call .GETYOIL
 
 	popa
