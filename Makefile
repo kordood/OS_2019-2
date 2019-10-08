@@ -1,4 +1,4 @@
-all: BootLoader Kernel32 Disk.img Utility
+all: BootLoader Kernel32 Kernel64 Disk.img Utility
 
 BootLoader:
 	@echo 
@@ -24,7 +24,7 @@ Kernel32:
 	
 Kernel64:
 	@echo 
-	@echo ============== Build 32bit Kernel ===============
+	@echo ============== Build 64bit Kernel ===============
 	@echo 
 	
 	make -C 02.Kernel64
@@ -62,7 +62,7 @@ run:
 clean:
 	make -C 00.BootLoader clean
 	make -C 01.Kernel32 clean
-	make -C 01.Kernel64 clean
+	make -C 02.Kernel64 clean
 	make -C 04.Utility clean
 	rm -f Disk.img	
 	rm -f ImageMaker.exe
