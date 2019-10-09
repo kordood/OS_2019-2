@@ -45,7 +45,7 @@ void Main( void )
 		kPrintString( 0, 18, "Write to 0x1ff000 [  ]");
 	}
 	else{
-		kPrintString( 22, 17, "FAIL]");
+		kPrintString( 20, 17, "FAIL]");
 		while(1);
 	}
 	//*kernel1ff = 0xDEADBEEF;
