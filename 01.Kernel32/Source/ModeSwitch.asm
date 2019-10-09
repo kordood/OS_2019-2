@@ -91,6 +91,7 @@ kSwitchAndExecute64bitKernel:
     mov eax, cr0            ; EAX 레지스터에 CR0 컨트롤 레지스터를 저장
     or eax, 0xE0000000      ; NW 비트(비트 29), CD 비트(비트 30), PG 비트(비트 31)을 모두 1로 설정
     xor eax, 0x60000000     ; NW 비트(비트 29)와 CD 비트(비트 30)을 XOR하여 0으로 설정
+    or eax, 0x00010000      ; NW 비트(비트 29), CD 비트(비트 30), PG 비트(비트 31)을 모두 1로 설정
     mov cr0, eax            ; NW 비트 = 0, CD 비트 = 0, PG 비트 = 1로 설정한 값을 다시 
                             ; CR0 컨트롤 레지스터에 저장
     

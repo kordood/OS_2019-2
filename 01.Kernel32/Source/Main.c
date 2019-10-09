@@ -50,6 +50,15 @@ void Main( void )
 	kInitializePageTables();
 	kPrintString( 45, 8, "Pass" );
 
+	// 0x1fe000, 0x1ff000 setting
+	DWORD *val1fe000;
+	DWORD *val1ff000;
+	val1fe000 = 0x1fe000;
+	*val1fe000 = 0x050011FE;
+	val1ff000 = 0x1ff000;
+	*val1ff000 = 0xCAFEBABE;
+
+	// Read CPUID
 	kReadCPUID( 0x00, &dwEAX, &dwEBX, &dwECX, &dwEDX );
 	*( DWORD* ) vcVendorString = dwEBX;
 	*( ( DWORD* ) vcVendorString + 1 ) = dwEDX;
