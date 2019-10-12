@@ -56,7 +56,7 @@ typedef struct kPageTableEntryStruct
     DWORD dwAttributeAndLowerBaseAddress;
     // 8 비트 Upper BaseAddress, 12 비트 Reserved, 11 비트 Avail, 1 비트 EXB 
     DWORD dwUpperBaseAddressAndEXB;
-} PML4TENTRY, PDPTENTRY, PDENTRY, kPDENTRY, PTENTRY;
+} PML4TENTRY, PDPTENTRY, PDENTRY, PTENTRY;
 
 #pragma pack( pop )
 

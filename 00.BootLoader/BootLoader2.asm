@@ -1,5 +1,3 @@
-	mov ax, cs
-	push ax
 	mov ax, 0x07e0
 	mov ds, ax
 
@@ -10,7 +8,7 @@
 	call PRINTMESSAGE1
 	add sp, 6
 
-	pop ax
+	mov ax, 0x07c0
 	mov ds, ax
 	ret
 
@@ -84,7 +82,7 @@ GETRTC:
     mov si, 14
     call .CYMD
 
-	;add dl, 5
+	add dl, 5
 	call .GETYOIL
 
 	popa
@@ -292,9 +290,9 @@ GETRTC:
 
 CLOCK_STRING:			db 'Current Data: 00/00/0000 FFF', 0
 YOIL:					db 'MONTUEWEDTHUFRISATSUN', 0
-IMAGELOADINGMESSAGE:	db 'OS Image Loading... ', 0
+IMAGELOADINGMESSAGE:	db 'OS Image Loading...', 0
 
 YEARGAP:		dw 0
 YOONFLAG:		db 0
 
-times ( 512 - ( $ - $$ ) % 512 )    db 0x00
+times  512 - ( $ - $$ )     db 0x00

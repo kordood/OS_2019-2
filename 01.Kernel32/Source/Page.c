@@ -16,7 +16,7 @@ void kInitializePageTables( void )
 	PML4TENTRY* pstPML4TEntry;
 	PDPTENTRY* pstPDPTEntry;
 	PDENTRY* pstPDEntry;
-	kPDENTRY* pstkPDEntry;			// PDE for kernel
+	PTENTRY* pstPTEntry;			// PDE for kernel
 	DWORD dwMappingAddress;
 	int i;
 
@@ -64,18 +64,18 @@ void kInitializePageTables( void )
 		dwMappingAddress += PAGE_DEFAULTSIZE;
 	}	
 
-	pstkPDEntry = ( kPDENTRY* ) 0x142000;
+	pstPTEntry = ( PTENTRY* ) 0x142000;
 	dwMappingAddress = 0;
 	for( i = 0 ; i < PAGE_MAXENTRYCOUNT; i++ )
 	{
 		if( dwMappingAddress == 0x1fe000 ){
-			kSetPageEntryData( &( pstkPDEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_DEFAULT, 0 );
+			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_DEFAULT, 0 );
 		}
 		else if( dwMappingAddress == 0x1ff000 ){
-			kSetPageEntryData( &( pstkPDEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_P, 0 );
+			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_P, 0 );
 		}
 		else{
-			kSetPageEntryData( &( pstkPDEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_DEFAULT, 0 );
+			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_DEFAULT, 0 );
 		}
 		dwMappingAddress += 0x1000;		// 4096(4KB)
 	}	
