@@ -12,6 +12,7 @@
 // 함수 선언
 void kPrintString( int iX, int iY, const char* pcString );
 void kPrintStringMapped( int iX, int iY, const char* pcString );
+void kRWROTest();
 
 /**
  *  아래 함수는 C 언어 커널의 시작 부분임
@@ -21,37 +22,8 @@ void Main( void )
     kPrintString( 0, 12, "Switch To IA-32e Mode Success~!!" );
     kPrintString( 0, 13, "IA-32e C Language Kernel Start..............[Pass]" );
     kPrintStringMapped( 0, 14, "This message is printed through the video memory relocated to 0xAB8000" );
-	kPrintString( 0, 15, "Read from 0x1fe000 [  ]");
 
-	DWORD **kernel1fe;
-	DWORD **kernel1ff;
-	kernel1fe = 0x1fe000;
-
-	if( *kernel1fe == 0x050011FE ){				// OS Life~~
-		kPrintString( 20, 15, "OK");
-		kPrintString( 0, 16, "Write to 0x1fe000 [  ]");
-	}
-	else{
-		kPrintString( 20, 15, "FAIL]");
-		while(1);
-	}
-	*kernel1fe = 0xDEADBEEF;
-	kPrintString( 19, 16, "OK");
-	kPrintString( 0, 17, "Read from 0x1ff000 [  ]");
-
-	kernel1ff = 0x1ff000;
-	if( *kernel1ff == 0xCAFEBABE ){				// OS Life~~
-		kPrintString( 20, 17, "OK");
-		kPrintString( 0, 18, "Write to 0x1ff000 [  ]");
-	}
-	else{
-		kPrintString( 22, 17, "FAIL]");
-		while(1);
-	}
-	//*kernel1ff = 0xDEADBEEF;
-	//kPrintString( 19, 18, "OK");
-
-
+	kRWROTest();
 
 }
 
@@ -86,4 +58,41 @@ void kPrintStringMapped( int iX, int iY, const char* pcString )
     {
         pstScreen[ i ].bCharactor = pcString[ i ];
     }
+}
+
+void kRWROTest(){
+
+	DWORD **kernel1fe;
+	DWORD **kernel1ff;
+	kernel1fe = 0x1fe000;
+
+	kPrintString( 0, 15, "Read from 0x1fe000 [  ]");
+
+	if( *kernel1fe == 0x050011FE ){				// OS Life~~
+		kPrintString( 20, 15, "OK");
+		kPrintString( 0, 16, "Write to 0x1fe000 [  ]");
+	}
+	else{
+		kPrintString( 20, 15, "FAIL]");
+		while(1);
+	}
+	*kernel1fe = 0xDEADBEEF;
+	kPrintString( 19, 16, "OK");
+	kPrintString( 0, 17, "Read from 0x1ff000 [  ]");
+
+	kernel1ff = 0x1ff000;
+	if( *kernel1ff == 0xCAFEBABE ){
+		kPrintString( 20, 17, "OK");
+	}
+	else{
+		kPrintString( 20, 17, "FAIL]");
+		while(1);
+	}
+	// write to read-only page(0x1ff000)
+	/**	kPrintString( 0, 18, "Write to 0x1ff000 [  ]");
+	 *	*kernel1ff = 0xDEADBEEF;
+	 *	kPrintString( 19, 18, "OK");
+	 */
+
+	return;
 }

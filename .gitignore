@@ -1,0 +1,13 @@
+## git Ignore File ##
+
+*.bak
+*.bin
+*.o
+*.elf
+*.dep
+*.swp
+*.swo
+*.mem
+
+01.Kernel32/Temp/
+02.Kernel64/Temp/
