@@ -52,6 +52,8 @@ START:
 	jmp NEXT
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;	Get Memory Map
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 MMAP:
 mmap_ent equ 0x8000             ; the number of entries will be stored at 0x8000
 do_e820:
@@ -59,7 +61,7 @@ do_e820:
 	xor ebx, ebx				; ebx must be 0 to start
 	xor bp, bp					; keep an entry count in bp
 	mov edx, 0x0534D4150		; Place "SMAP" into edx
-	mov eax, 0xe820
+	mov eax, 0xE820
 	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entry
 	mov ecx, 24					; ask for 24 bytes
 	int 0x15
@@ -72,7 +74,7 @@ do_e820:
 	call getLengthLow
 	jmp short .jmpin
 .e820lp:
-	mov eax, 0xe820				; eax, ecx get trashed on every int 0x15 call
+	mov eax, 0xE820				; eax, ecx get trashed on every int 0x15 call
 	mov [es:di + 20], dword 1	; force a valid ACPI 3.X entry
 	mov ecx, 24					; ask for 24 bytes again
 	int 0x15
