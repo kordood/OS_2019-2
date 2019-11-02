@@ -19,9 +19,14 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "totalram", "Show Total RAM Size", kShowTotalRAMSize },
         { "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
         { "shutdown", "Shutdown And Reboot OS", kShutdown },
+        { "strcat", "String Cat(dummy)", kDummy },
+        { "strcp", "String Copy(dummy)", kDummy },
+        { "rm", "Remove File(dummy)", kDummy },
+        { "rmdir", "Remove Directory(dummy)", kDummy },
+        { "pwd", "Present Working Directory(dummy)", kDummy },
 };                                     
 
-//==============================================================================
+//=============================================================================
 //  실제 셸을 구성하는 코드
 //==============================================================================
 /**
@@ -295,3 +300,5 @@ void kShutdown( const char* pcParamegerBuffer )
     kGetCh();
     kReboot();
 }
+
+void kDummy(const char* pcParamegerBuffer){}
