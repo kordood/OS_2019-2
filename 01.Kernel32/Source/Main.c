@@ -3,7 +3,7 @@
  *  date    2008/12/14
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   C ¾ğ¾î·Î ÀÛ¼ºµÈ Ä¿³ÎÀÇ ¿£Æ®¸® Æ÷ÀÎÆ® ÆÄÀÏ
+ *  brief   C ì–¸ì–´ë¡œ ì‘ì„±ëœ ì»¤ë„ì˜ ì—”íŠ¸ë¦¬ í¬ì¸íŠ¸ íŒŒì¼
  */
 
 #include "Types.h"
@@ -50,6 +50,15 @@ void Main( void )
 	kInitializePageTables();
 	kPrintString( 45, 8, "Pass" );
 
+	// 0x1fe000, 0x1ff000 setting
+	DWORD *val1fe000;
+	DWORD *val1ff000;
+	val1fe000 = 0x1fe000;
+	*val1fe000 = 0x050011FE;
+	val1ff000 = 0x1ff000;
+	*val1ff000 = 0xCAFEBABE;
+
+	// Read CPUID
 	kReadCPUID( 0x00, &dwEAX, &dwEBX, &dwECX, &dwEDX );
 	*( DWORD* ) vcVendorString = dwEBX;
 	*( ( DWORD* ) vcVendorString + 1 ) = dwEDX;
@@ -70,12 +79,12 @@ void Main( void )
 		while( 1 ) ;
 	}
 
-	// IA-32e ¸ğµå Ä¿³ÎÀ» 0x200000(2Mbyte) ¾îµå·¹½º·Î ÀÌµ¿
+	// IA-32e ëª¨ë“œ ì»¤ë„ì„ 0x200000(2Mbyte) ì–´ë“œë ˆìŠ¤ë¡œ ì´ë™
 	kPrintString( 0, 11, "Copy IA-32e Kernel To 2M Address............[    ]" );
 	kCopyKernel64ImageTo2Mbyte();
 	kPrintString( 45, 11, "Pass" );
 
-	// IA-32e ¸ğµå·Î ÀüÈ¯
+	// IA-32e ëª¨ë“œë¡œ ì „í™˜
 	kPrintString( 0, 12, "Switch To IA-32e Mode" );
 	kSwitchAndExecute64bitKernel();
 
@@ -145,7 +154,7 @@ BOOL kIsMemoryEnough( void )
 }
 
 /**
- *  IA-32e ¸ğµå Ä¿³ÎÀ» 0x200000(2Mbyte) ¾îµå·¹½º¿¡ º¹»ç
+ *  IA-32e ëª¨ë“œ ì»¤ë„ì„ 0x200000(2Mbyte) ì–´ë“œë ˆìŠ¤ì— ë³µì‚¬
  */
 void kCopyKernel64ImageTo2Mbyte( void )
 {
@@ -153,14 +162,14 @@ void kCopyKernel64ImageTo2Mbyte( void )
 	DWORD* pdwSourceAddress,* pdwDestinationAddress;
 	int i;
 
-	// 0x7C05¿¡ ÃÑ Ä¿³Î ¼½ÅÍ ¼ö, 0x7C07¿¡ º¸È£ ¸ğµå Ä¿³Î ¼½ÅÍ ¼ö°¡ µé¾î ÀÖÀ½
+	// 0x7C05ì— ì´ ì»¤ë„ ì„¹í„° ìˆ˜, 0x7C07ì— ë³´í˜¸ ëª¨ë“œ ì»¤ë„ ì„¹í„° ìˆ˜ê°€ ë“¤ì–´ ìˆìŒ
 	wTotalKernelSectorCount = *( ( WORD* ) 0x7C05 );
 	wKernel32SectorCount = *( ( WORD* ) 0x7C07 );
 
 	pdwSourceAddress = ( DWORD* ) ( 0x10000 + ( wKernel32SectorCount * 512 ) );
 	pdwDestinationAddress = ( DWORD* ) 0x200000;
 
-	// IA-32e ¸ğµå Ä¿³Î ¼½ÅÍ Å©±â¸¸Å­ º¹»ç
+	// IA-32e ëª¨ë“œ ì»¤ë„ ì„¹í„° í¬ê¸°ë§Œí¼ ë³µì‚¬
 	for( i = 0 ; i < 512 * ( wTotalKernelSectorCount - wKernel32SectorCount ) / 4;
 		i++ )
 	{
@@ -169,4 +178,3 @@ void kCopyKernel64ImageTo2Mbyte( void )
 		pdwSourceAddress++;
 	}
 }
-
