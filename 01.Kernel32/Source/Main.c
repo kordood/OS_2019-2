@@ -178,3 +178,4 @@ void kCopyKernel64ImageTo2Mbyte( void )
 		pdwSourceAddress++;
 	}
 }
+
