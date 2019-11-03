@@ -67,7 +67,7 @@ void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter );
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter );
 
 //
-void kExecuteTab(const char* pcCommadBuffer);
+void kExecuteTab( char* pcCommadBuffer, int* iCommandBufferIndex);
 
 // 커맨드를 처리하는 함수
 void kHelp( const char* pcParameterBuffer );

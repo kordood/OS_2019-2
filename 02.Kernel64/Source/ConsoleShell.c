@@ -86,9 +86,8 @@ void kStartConsoleShell( void )
             // ***********TAB*****************//
             if( bKey == KEY_TAB )
             {
-				kExecuteTab(vcCommandBuffer);
-				//kPrintf("%s", vcCommandBuffer);
-                //bKey = ' ';
+				kExecuteTab(vcCommandBuffer, &iCommandBufferIndex);
+				continue;
             }
             
             // 버퍼에 공간이 남아있을 때만 가능
@@ -114,7 +113,7 @@ void kStartConsoleShell( void )
 
 }*/
 
-void kExecuteTab( const char* pcCommandBuffer )
+void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex )
 {
 	int iCount;					//전체 커맨드 갯수
 	int iCommandLength;			//커맨드 하나의 길이
@@ -133,12 +132,10 @@ void kExecuteTab( const char* pcCommandBuffer )
 
 	pcCommandBufferLength = kStrLen(pcCommandBuffer);
 	
-//		kPrintf("1\n");
 
 	for( i = 0 ; i < iCount ; i++ )
     {
 		//buffer에 들어온 길이만큼 substring 해주기
-		//subString = kSubStr(gs_vstCommandTable[i].pcCommand, pcCommandBufferLength);
 		pCommand = gs_vstCommandTable[i].pcCommand;
 	
 		for(j = 0; j < pcCommandBufferLength; j++){
@@ -159,9 +156,6 @@ void kExecuteTab( const char* pcCommandBuffer )
 		}
 		
     }
-//			kPrintf("cnt : %d\n",cnt);
-
-//		kPrintf("1\n");
 	if(cnt == 1)
 	{
 		//int i;
@@ -169,7 +163,6 @@ void kExecuteTab( const char* pcCommandBuffer )
 		{
 			if(cmdIndex[i] == 1)	//몇번째 명령어인지 확인
 			{
-			//	kPrintf("cmdIndex : %d\n", i);
 				break;
 			}
 		}
@@ -183,20 +176,23 @@ void kExecuteTab( const char* pcCommandBuffer )
 		//int j;
 		for(j = pcCommandBufferLength; j < iCommandLength; j++)
 		{
-			pcCommandBuffer[j] = pCommand[j];
-			kPrintf("%c", pCommand[j]);
+            if(*iCommandBufferIndex < CONSOLESHELL_MAXCOMMANDBUFFERCOUNT )
+            {
+                pcCommandBuffer[ (int)(*iCommandBufferIndex)++ ] = pCommand[j];
+                kPrintf( "%c", pCommand[j] );
+            }
 		}
 	}
 	else if(cnt > 1)
 	{
-		if(bKey == KEY_TAB)
-		{
-			for(i = 0;i < iCount; i++){
-			}
-		}
-		else
-		{
-		}
+	//	if(bKey == KEY_TAB)
+//		{
+//			for(i = 0;i < iCount; i++){
+//			}
+//		}
+//		else
+//		{
+//		}
 
 	}
 	else if(cnt == 0)
