@@ -73,4 +73,7 @@ void kShowTotalRAMSize( const char* pcParameterBuffer );
 void kStringToDecimalHexTest( const char* pcParameterBuffer );
 void kShutdown( const char* pcParamegerBuffer );
 
+void kPagefault( const char* pcParameterBuffer );
+void kProtectionfault( const char* pcParameterBuffer );
+
 #endif /*__CONSOLESHELL_H__*/

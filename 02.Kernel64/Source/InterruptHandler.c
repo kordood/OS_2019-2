@@ -31,6 +31,139 @@ void kCommonExceptionHandler( int iVectorNumber, QWORD qwErrorCode )
     while( 1 ) ;
 }
 
+
+void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
+{
+    char ecBuffer[ 5 ] = { 0, };
+    ecBuffer[ 0 ] = '0' + (qwErrorCode>>32) / 10;
+    ecBuffer[ 1 ] = '0' + (qwErrorCode>>32) % 10;
+    ecBuffer[ 2 ] = '0' + qwErrorCode / 10;
+    ecBuffer[ 3 ] = '0' + qwErrorCode % 10;
+
+    	kPrintStringXY( 0, 0, "====================================================" );
+		kPrintStringXY( 0, 1, "                   Page Fault!!                     " );
+    	kPrintStringXY( 0, 2, "                 error code:                        " );
+    	kPrintStringXY( 29, 2, ecBuffer );
+    	kPrintStringXY( 0, 3, "====================================================" );
+    	kPrintStringXY( 0, 4, "====================================================" );
+
+	if(qwErrorCode & 0x01){					// is protection fault?
+		DWORD entryIndex;
+		QWORD CR2, CR3;
+
+		__asm__ __volatile__(
+			"mov %%cr2, %%rax \n\t"
+			"mov %%rax, %0 \n\t"
+			"mov %%cr3, %%rax \n\t"
+			"mov %%rax, %1 \n\t"
+		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
+
+		entryIndex = (CR2 >> 12);
+
+		if(entryIndex > 511){
+    		kPrintStringXY( 32, 4, "Entry index bound error");
+			while(1);
+		}
+
+		QWORD pt_index, pd_index, pdpt_index, pml4_index;
+		QWORD *ptr;
+		pt_index = (CR2 >> 12) & 0x1ff;
+		pd_index = (CR2 >> 21) & 0x1ff;
+		pdpt_index = (CR2 >> 30) & 0x1ff;
+		pml4_index = (CR2 >> 39) & 0x1ff;
+
+		ptr = (QWORD *)CR3 + pml4_index;
+		
+		if(((*ptr) & 0x02) ^ 0x02){
+			*ptr = (*ptr) ^ 0x02;
+		}
+
+		ptr = (QWORD *)((*ptr)&0xFFFFFFF000) + pdpt_index;
+
+		if(((*ptr) & 0x02) ^ 0x02){
+			*ptr = (*ptr) ^ 0x02;
+		}
+
+		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pd_index;
+
+		if(((*ptr) & 0x02) ^ 0x02){
+			*ptr = (*ptr) ^ 0x02;
+		}
+
+		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+
+		if(((*ptr) & 0x02) ^ 0x02){
+			*ptr = (*ptr) ^ 0x02;
+		}
+		QWORD var = *ptr;
+
+		__asm__ __volatile__(
+			"mov %0, %%rax \n\t"
+		:: "lr" (var));
+		//asm volatile ( "invlpg (%0)" : : "b"(CR3) : "memory" );			// <<<<<<<<<<<<<<<<<<< This point maybe need fixing(TLB invalidation)
+
+		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+	}
+	else{
+		DWORD entryIndex;
+		QWORD CR2, CR3;
+
+		__asm__ __volatile__(
+			"mov %%cr2, %%rax \n\t"
+			"mov %%rax, %0 \n\t"
+			"mov %%cr3, %%rax \n\t"
+			"mov %%rax, %1 \n\t"
+		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
+
+		entryIndex = (CR2 >> 12);
+
+		if(entryIndex > 511){
+    		kPrintStringXY( 32, 4, "Entry index bound error");
+			while(1);
+		}
+
+		QWORD pt_index, pd_index, pdpt_index, pml4_index;
+		QWORD *ptr;
+		pt_index = (CR2 >> 12) & 0x1ff;
+		pd_index = (CR2 >> 21) & 0x1ff;
+		pdpt_index = (CR2 >> 30) & 0x1ff;
+		pml4_index = (CR2 >> 39) & 0x1ff;
+
+		ptr = (QWORD *)CR3 + pml4_index;
+		
+		if(((*ptr) & 0x01) ^ 0x01){
+			*ptr = (*ptr) ^ 0x01;
+		}
+
+		ptr = (QWORD *)((*ptr)&0xFFFFFFF000) + pdpt_index;
+
+		if(((*ptr) & 0x01) ^ 0x01){
+			*ptr = (*ptr) ^ 0x01;
+		}
+
+		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pd_index;
+
+		if(((*ptr) & 0x01) ^ 0x01){
+			*ptr = (*ptr) ^ 0x01;
+		}
+
+		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+
+		if(((*ptr) & 0x01) ^ 0x01){
+			*ptr = (*ptr) ^ 0x01;
+		}
+		QWORD var = *ptr;
+
+		__asm__ __volatile__(
+			"mov %0, %%rax \n\t"
+		:: "lr" (var));
+		//asm volatile ( "invlpg (%0)" : : "b"(CR3) : "memory" );			// <<<<<<<<<<<<<<<<<<< This point maybe need fixing(TLB invalidation)
+
+		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+
+	}
+}
+
 /**
  *  공통으로 사용하는 인터럽트 핸들러
  */

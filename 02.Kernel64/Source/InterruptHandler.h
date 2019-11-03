@@ -17,6 +17,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 void kCommonExceptionHandler( int iVectorNumber, QWORD qwErrorCode );
+void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode );
 void kCommonInterruptHandler( int iVectorNumber );
 void kKeyboardHandler( int iVectorNumber );
 

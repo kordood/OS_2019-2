@@ -19,6 +19,8 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "totalram", "Show Total RAM Size", kShowTotalRAMSize },
         { "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
         { "shutdown", "Shutdown And Reboot OS", kShutdown },
+        { "pagefault", "Cause page fault", kPagefault },
+        { "protfault", "Cause protection fault", kProtectionfault },
 };                                     
 
 //==============================================================================
@@ -294,4 +296,22 @@ void kShutdown( const char* pcParamegerBuffer )
     kPrintf( "Press Any Key To Reboot PC..." );
     kGetCh();
     kReboot();
+}
+
+void kPagefault( const char* pcParameterBuffer )
+{
+	DWORD **faultptr;
+	faultptr = 0x1fffff;
+	DWORD test = *faultptr;
+    kPrintf( "Page fault tried\n" );
+}
+
+void kProtectionfault( const char* pcParameterBuffer )
+{
+	DWORD **faultptr;
+	faultptr = 0x1fffff;
+	*faultptr = 0xdeadbeef;
+    kPrintf( "Protection fault tried\n" );
+    __asm__ __volatile__( "mov %0, %%rax\n\t"::"lr"(*faultptr));
+	while(1);
 }
