@@ -77,18 +77,18 @@ void kStartConsoleShell( void )
             iCommandBufferIndex = 0;
         }
         // 시프트 키, CAPS Lock, NUM Lock, Scroll Lock은 무시
-        else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) ||
-                 ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) ||
-                 ( bKey == KEY_SCROLLLOCK ) )
+        else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) || ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) || ( bKey == KEY_SCROLLLOCK ) )
         {
             ;
         }
         else
         {
-            // TAB은 공백으로 전환
+            // ***********TAB*****************//
             if( bKey == KEY_TAB )
             {
-                bKey = ' ';
+				kExecuteTab(vcCommandBuffer);
+				//kPrintf("%s", vcCommandBuffer);
+                //bKey = ' ';
             }
             
             // 버퍼에 공간이 남아있을 때만 가능
@@ -99,6 +99,112 @@ void kStartConsoleShell( void )
             }
         }
     }
+}
+
+/*char* kSubstr( const char * str, int size)
+{
+	char sub[100];
+	int i;
+	for(i = 0;i<size;i++){
+		sub[i] = str[i];
+	}
+	//sub[i] = "\0";
+
+	return sub;
+
+}*/
+
+void kExecuteTab( const char* pcCommandBuffer )
+{
+	int iCount;					//전체 커맨드 갯수
+	int iCommandLength;			//커맨드 하나의 길이
+	char subString[100];		//커맨드substring
+	
+	int pcCommandBufferLength;	// 버퍼에 들어온 길이
+
+	int i;	
+	int j;
+	int cnt = 0;
+	int cmdIndex[100];
+	char* pCommand;
+
+
+	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+
+	pcCommandBufferLength = kStrLen(pcCommandBuffer);
+	
+//		kPrintf("1\n");
+
+	for( i = 0 ; i < iCount ; i++ )
+    {
+		//buffer에 들어온 길이만큼 substring 해주기
+		//subString = kSubStr(gs_vstCommandTable[i].pcCommand, pcCommandBufferLength);
+		pCommand = gs_vstCommandTable[i].pcCommand;
+	
+		for(j = 0; j < pcCommandBufferLength; j++){
+			subString[j] = pCommand[j];
+		}
+  //  	kPrintf("pCommand : %s\n",pCommand);
+//		kPrintf("subString :%s\n", subString);
+//		kPrintf("pcCommandBuffer :%s\n", pcCommandBuffer);
+        // 커맨드의 내용이 일치하는지 검사
+		if(( kMemCmp( subString, pcCommandBuffer, pcCommandBufferLength ) == 0 ) )	//null문자 확인해보기
+        {
+			cnt++;
+			cmdIndex[i] = 1;
+        }
+		else
+		{
+			cmdIndex[i] = 0;
+		}
+		
+    }
+//			kPrintf("cnt : %d\n",cnt);
+
+//		kPrintf("1\n");
+	if(cnt == 1)
+	{
+		//int i;
+		for(i = 0; i < iCount; i++)
+		{
+			if(cmdIndex[i] == 1)	//몇번째 명령어인지 확인
+			{
+			//	kPrintf("cmdIndex : %d\n", i);
+				break;
+			}
+		}
+
+		pCommand = gs_vstCommandTable[i].pcCommand;
+		iCommandLength = kStrLen(pCommand);
+		//kPrintf("pCommand : %s\n", pCommand);
+		//kPrintf("pcCommandBufferLength : %d\n", pcCommandBufferLength);
+		//kPrintf("iCommmandLength : %x\n", iCommandLength);
+			
+		//int j;
+		for(j = pcCommandBufferLength; j < iCommandLength; j++)
+		{
+			pcCommandBuffer[j] = pCommand[j];
+			kPrintf("%c", pCommand[j]);
+		}
+	}
+	else if(cnt > 1)
+	{
+		if(bKey == KEY_TAB)
+		{
+			for(i = 0;i < iCount; i++){
+			}
+		}
+		else
+		{
+		}
+
+	}
+	else if(cnt == 0)
+	{
+		return; //?
+	}
+
+		//kPrintf("1\n");
 }
 
 /*
