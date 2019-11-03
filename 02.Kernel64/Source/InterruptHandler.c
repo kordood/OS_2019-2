@@ -40,13 +40,6 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
     ecBuffer[ 2 ] = '0' + qwErrorCode / 10;
     ecBuffer[ 3 ] = '0' + qwErrorCode % 10;
 
-    	kPrintStringXY( 0, 0, "====================================================" );
-		kPrintStringXY( 0, 1, "                   Page Fault!!                     " );
-    	kPrintStringXY( 0, 2, "                 error code:                        " );
-    	kPrintStringXY( 29, 2, ecBuffer );
-    	kPrintStringXY( 0, 3, "====================================================" );
-    	kPrintStringXY( 0, 4, "====================================================" );
-
 	if(qwErrorCode & 0x01){					// is protection fault?
 		DWORD entryIndex;
 		QWORD CR2, CR3;
@@ -103,6 +96,11 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		//asm volatile ( "invlpg (%0)" : : "b"(CR3) : "memory" );			// <<<<<<<<<<<<<<<<<<< This point maybe need fixing(TLB invalidation)
 
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+
+    	kPrintf("====================================================\n");
+		kPrintf("              Protection Fault Occurs~!             \n" );
+    	kPrintf("                  Address: 0x%x                     \n", CR2);
+    	kPrintf("====================================================\n");
 	}
 	else{
 		DWORD entryIndex;
@@ -161,6 +159,10 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
+    	kPrintf("====================================================\n");
+		kPrintf("                 Page Fault Occurs~!                \n" );
+    	kPrintf("                  Address: 0x%x                     \n", CR2);
+    	kPrintf("====================================================\n");
 	}
 }
 
