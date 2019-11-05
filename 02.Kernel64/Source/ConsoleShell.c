@@ -137,8 +137,10 @@ void kStartConsoleShell( void )
 				if(UPnDOWN > 0) DownOn = 1;
 
 				if((UPnDOWN == 0)&&(UpOn == 0)){
-					tmpData = IteratePrevList(spDLL, UPnDOWN);	
-					if(spDLL->m_spIterator!=spDLL->m_spHead) UPnDOWN++;
+					if(spDLL->m_spIterator!= NULL) tmpData = IteratePrevList(spDLL, UPnDOWN);	
+					if(spDLL->m_spIterator!=spDLL->m_spHead) {
+						UPnDOWN++;
+					}
 					if((spDLL->m_spIterator == spDLL->m_spHead)){
 					}
 				}else if ((UPnDOWN == 1)&&(UpOn == 0)){
@@ -174,10 +176,13 @@ void kStartConsoleShell( void )
 				if(UPnDOWN<0) {
 					UPnDOWN = 0;
 					DownOn = 0;
+
 				}
+				if(DownOn == 1){
 				if(iCommandBufferIndex > 0)
 					tmpData = IterateNextList(spDLL,UPnDOWN);	
 				else tmpData = '\0';	
+				}
 				while(iCommandBufferIndex!=0){
 					kGetCursor( &iCursorX, &iCursorY );
 					kPrintStringXY( iCursorX - 1, iCursorY, " " );
@@ -338,20 +343,20 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 		int tabcnt = 0;
 		int line = 1;
 
-
 		if(tabflag == 1){
 			kPrintf("\n");
 			for(i = 0;i < iCount; i++){
 				if(cmdIndex[i] == 1){
-					kPrintf("%s\t\t",gs_vstCommandTable[i].pcCommand);
+					kPrintf("%s\t",gs_vstCommandTable[i].pcCommand);
 					tabcnt++;
-				
-					if(!(tabcnt % 3) && ( line < cnt / 3)){
+
+					if(cnt - (line*3) > 0 && ((tabcnt%3) == 0)){
 						kPrintf("\n");
 						line++;
-					}
+					}				
 				}
 			}
+			
 			kPrintf("\n");
 			kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE ); 
  			kPrintf("%s", pcCommandBuffer);
