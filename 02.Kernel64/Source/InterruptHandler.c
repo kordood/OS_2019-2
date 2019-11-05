@@ -14,6 +14,7 @@
 /**
  *  공통으로 사용하는 예외 핸들러
  */
+static inline void invlpg(void* m);
 void kCommonExceptionHandler( int iVectorNumber, QWORD qwErrorCode )
 {
     char vcBuffer[ 3 ] = { 0, };
@@ -90,13 +91,19 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		}
 		QWORD var = *ptr;
 
-		__asm__ __volatile__(
-			"mov %0, %%rax \n\t"
-		:: "lr" (var));
-
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
+		invlpg(&CR2);
+		/*
+		__asm__ __volatile__(
+			"mov %%cr2, %%rax \n\t"
+			"mov %%rax, %0 \n\t"
+			"mov %%cr3, %%rax \n\t"
+			"mov %%rax, %1 \n\t"
+		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
+		*/
 	//	asm volatile ( "invlpg (%0)" : : "b"(CR2) : "memory" );			// <<<<<<<<<<<<<<<<<<< This point maybe need fixing(TLB invalidation)
+
 
     	kPrintf("====================================================\n");
 		kPrintf("                 Page Fault Occurs~!                \n" );
@@ -153,13 +160,9 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		}
 		QWORD var = *ptr;
 
-		__asm__ __volatile__(
-			"mov %0, %%rax \n\t"
-		:: "lr" (var));
-
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
-		//asm volatile ( "invlpg (%0)" : : "b"(CR2) : "memory" );			// <<<<<<<<<<<<<<<<<<< This point maybe need fixing(TLB invalidation)
+		invlpg(&CR2);
 
     	kPrintf("====================================================\n");
 		kPrintf("              Protection Fault Occurs~!             \n" );
@@ -220,4 +223,9 @@ void kKeyboardHandler( int iVectorNumber )
 
     // EOI 전송
     kSendEOIToPIC( iVectorNumber - PIC_IRQSTARTVECTOR );
+}
+
+static inline void invlpg(void* m)
+{
+	asm volatile ( "invlpg (%0)" : : "b"(m) : "memory" );
 }
