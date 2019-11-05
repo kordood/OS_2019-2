@@ -27,7 +27,7 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
 	{ "strcats", "String (dummy)", kDummy },
 	{ "strcp", "String Copy(dummy)", kDummy },
 	{ "rm", "Remove File(dummy)", kDummy },
-	{ "rmdir", "Remove Directory(dummy)", kDummy },
+//	{ "rmdir", "Remove Directory(dummy)", kDummy },
 	{ "pwd", "Present Working Directory(dummy)", kDummy },
     { "pagefault", "Cause page fault", kPagefault },
     { "protfault", "Cause protection fault", kProtectionfault },
@@ -341,15 +341,16 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 			kPrintf("\n");
 			for(i = 0;i < iCount; i++){
 				if(cmdIndex[i] == 1){
-					kPrintf("%s\t\t",gs_vstCommandTable[i].pcCommand);
+					kPrintf("%s\t",gs_vstCommandTable[i].pcCommand);
 					tabcnt++;
-				
-					if(!(tabcnt % 3) && ( line < cnt / 3)){
+
+					if(cnt - (line*3) > 0 && ((tabcnt%3) == 0)){
 						kPrintf("\n");
 						line++;
-					}
+					}				
 				}
 			}
+			
 			kPrintf("\n");
 			kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE ); 
  			kPrintf("%s", pcCommandBuffer);
