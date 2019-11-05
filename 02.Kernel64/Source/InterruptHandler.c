@@ -14,7 +14,6 @@
 /**
  *  공통으로 사용하는 예외 핸들러
  */
-static inline void invlpg(void* m);
 void kCommonExceptionHandler( int iVectorNumber, QWORD qwErrorCode )
 {
     char vcBuffer[ 3 ] = { 0, };
