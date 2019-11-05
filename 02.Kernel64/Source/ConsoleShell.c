@@ -3,302 +3,572 @@
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   ÄÜ¼Ö ¼Ğ¿¡ °ü·ÃµÈ ¼Ò½º ÆÄÀÏ
+ *  brief   è‚„Â˜Â†Â” Â…ëª„Â—Â æ„¿Â€ï¿½â‘¤ÂÂœ Â†ÂŒÂŠ ÂŒÂŒÂ
  */
 
 #include "ConsoleShell.h"
 #include "Console.h"
 #include "Keyboard.h"
 #include "Utility.h"
+#include "DoubleLinkedList.h"
 
-// Ä¿¸Çµå Å×ÀÌºí Á¤ÀÇ
+// è€Œã…»ã¤Â“Âœ Â…ÂŒÂëŒ€Â” ï¿½Â•ÂÂ˜
 SHELLCOMMANDENTRY gs_vstCommandTable[] =
 {
-        { "help", "Show Help", kHelp },
-        { "cls", "Clear Screen", kCls },
-        { "totalram", "Show Total RAM Size", kShowTotalRAMSize },
-        { "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
-        { "shutdown", "Shutdown And Reboot OS", kShutdown },
-        { "strcat", "String Cat(dummy)", kDummy },
-        { "strcp", "String Copy(dummy)", kDummy },
-        { "rm", "Remove File(dummy)", kDummy },
-        { "rmdir", "Remove Directory(dummy)", kDummy },
-        { "pwd", "Present Working Directory(dummy)", kDummy },
+	{ "help", "Show Help", kHelp },
+	{ "cls", "Clear Screen", kCls },
+	{ "totalram", "Show Total RAM Size", kShowTotalRAMSize },
+	{ "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
+	{ "shutdown", "Shutdown And Reboot OS", kShutdown },
+	{ "strcat", "String Cat(dummy)", kDummy },
+	{ "stra", "String (dummy)", kDummy },
+	{ "strcbat", "String (dummy)", kDummy },
+	{ "strcact", "String (dummy)", kDummy },
+	{ "strcats", "String (dummy)", kDummy },
+	{ "strcp", "String Copy(dummy)", kDummy },
+	{ "rm", "Remove File(dummy)", kDummy },
+	{ "rmdir", "Remove Directory(dummy)", kDummy },
+	{ "pwd", "Present Working Directory(dummy)", kDummy },
+    { "pagefault", "Cause page fault", kPagefault },
+    { "protfault", "Cause protection fault", kProtectionfault },
 };                                     
 
-//=============================================================================
-//  ½ÇÁ¦ ¼ĞÀ» ±¸¼ºÇÏ´Â ÄÚµå
+int tabflag = 0;
 //==============================================================================
 /**
- *  ¼ĞÀÇ ¸ŞÀÎ ·çÇÁ
+ *  Â…ëª„ÂÂ˜ ï§Â”Â çŒ·â‘¦Â”Â„
  */
 void kStartConsoleShell( void )
 {
-    char vcCommandBuffer[ CONSOLESHELL_MAXCOMMANDBUFFERCOUNT ];
-    int iCommandBufferIndex = 0;
-    BYTE bKey;
-    int iCursorX, iCursorY;
-    
-    // ÇÁ·ÒÇÁÆ® Ãâ·Â
-    kPrintf( CONSOLESHELL_PROMPTMESSAGE );
-    
-    while( 1 )
-    {
-        // Å°°¡ ¼ö½ÅµÉ ¶§±îÁö ´ë±â
-        bKey = kGetCh();
-        // Backspace Å° Ã³¸®
-        if( bKey == KEY_BACKSPACE )
-        {
-            if( iCommandBufferIndex > 0 )
-            {
-                // ÇöÀç Ä¿¼­ À§Ä¡¸¦ ¾ò¾î¼­ ÇÑ ¹®ÀÚ ¾ÕÀ¸·Î ÀÌµ¿ÇÑ ´ÙÀ½ °ø¹éÀ» Ãâ·ÂÇÏ°í 
-                // Ä¿¸Çµå ¹öÆÛ¿¡¼­ ¸¶Áö¸· ¹®ÀÚ »èÁ¦
-                kGetCursor( &iCursorX, &iCursorY );
-                kPrintStringXY( iCursorX - 1, iCursorY, " " );
-                kSetCursor( iCursorX - 1, iCursorY );
-                iCommandBufferIndex--;
-            }
-        }
-        // ¿£ÅÍ Å° Ã³¸®
-        else if( bKey == KEY_ENTER )
-        {
-            kPrintf( "\n" );
-            
-            if( iCommandBufferIndex > 0 )
-            {
-                // Ä¿¸Çµå ¹öÆÛ¿¡ ÀÖ´Â ¸í·ÉÀ» ½ÇÇà
-                vcCommandBuffer[ iCommandBufferIndex ] = '\0';
-                kExecuteCommand( vcCommandBuffer );
-            }
-            
-            // ÇÁ·ÒÇÁÆ® Ãâ·Â ¹× Ä¿¸Çµå ¹öÆÛ ÃÊ±âÈ­
-            kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE );            
-            kMemSet( vcCommandBuffer, '\0', CONSOLESHELL_MAXCOMMANDBUFFERCOUNT );
-            iCommandBufferIndex = 0;
-        }
-        // ½ÃÇÁÆ® Å°, CAPS Lock, NUM Lock, Scroll LockÀº ¹«½Ã
-        else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) ||
-                 ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) ||
-                 ( bKey == KEY_SCROLLLOCK ) )
-        {
-            ;
-        }
-        else
-        {
-            // TABÀº °ø¹éÀ¸·Î ÀüÈ¯
-            if( bKey == KEY_TAB )
-            {
-                bKey = ' ';
-            }
-            
-            // ¹öÆÛ¿¡ °ø°£ÀÌ ³²¾ÆÀÖÀ» ¶§¸¸ °¡´É
-            if( iCommandBufferIndex < CONSOLESHELL_MAXCOMMANDBUFFERCOUNT )
-            {
-                vcCommandBuffer[ iCommandBufferIndex++ ] = bKey;
-                kPrintf( "%c", bKey );
-            }
-        }
-    }
+	char vcCommandBuffer[ CONSOLESHELL_MAXCOMMANDBUFFERCOUNT ];
+	int iCommandBufferIndex = 0;
+	BYTE bKey;
+	int iCursorX, iCursorY;
+
+	// ì¨ì± ì¨ŒÂ‰ì¨”ì§° 10ì§¸ì¨€ Â€ì²¬Â€ì±…ì©”ì±˜ list ì¨©ì²µì©Œì¨˜
+	DoubleLinkedList spdll;
+	DoubleLinkedList* spDLL = CreateLinkedList(&spdll);
+	int iCNT = 0;
+	SNode node[10];
+	char data[10][CONSOLESHELL_MAXCOMMANDBUFFERCOUNT];
+	char* tmpData;
+	int UPnDOWN = 0;
+	int DownOn = 0;
+	int UpOn = 0;
+
+	// Â”Â„æ¿¡Ñ‹Â”Â„ÂŠ ç•°Âœï¿½
+	kPrintf( CONSOLESHELL_PROMPTMESSAGE );
+
+	while( 1 )
+	{
+		if(iCommandBufferIndex == 0){
+			DownOn = 0;
+			UPnDOWN = 0;
+		}
+		// Â‚ã…ºÂ€ ÂˆÂ˜Â‹Â Â•ÂŒæºÂŒï§Â€ ÂŒÂ€æ¹²
+		bKey = kGetCh();
+		// Backspace Â‚ ï§£Â˜ç”±
+		if( bKey == KEY_BACKSPACE )
+		{
+			tabflag = 0;
+			if( iCommandBufferIndex > 0 )
+			{
+				// Â˜Â„Â è€Œã…¼Â„Âœ ÂœÂ„ç§»Â˜ç‘œ Â–ì‚´Â–ëŒÂ„Âœ Â•Âœ è‡¾ëª„ÂÂ Â•ÂÂœì‡°Âœ ÂëŒ€Â™Â•Âœ Â‹ã…¼ÂÂŒ æ€¨ë“¬ê°šÂÂ„ ç•°Âœï¿½Î½Â•Â˜æ€¨ 
+				// è€Œã…»ã¤Â“Âœ è¸°Â„Âì‡±Â—ÂÂ„Âœ ï§Âˆï§Â€ï§Â‰ è‡¾ëª„ÂÂ Â‚ï¿½Âœ
+				kGetCursor( &iCursorX, &iCursorY );
+				kPrintStringXY( iCursorX - 1, iCursorY, " " );
+				kSetCursor( iCursorX - 1, iCursorY );
+				vcCommandBuffer[ --iCommandBufferIndex ] = '\0';
+				
+				if(iCommandBufferIndex == 0){
+					UPnDOWN = 0;
+					DownOn = 0;
+					UpOn = 0;
+					spDLL->m_spIterator = spDLL->m_spTail;		
+				}
+			}
+		}
+		// Â—Â”Â„ Â‚ ï§£Â˜ç”±
+		else if( bKey == KEY_ENTER )
+		{
+			tabflag = 0;
+			kPrintf( "\n" );
+			DownOn = 0;
+			UPnDOWN = 0;
+			UpOn = 0;
+
+			if( iCommandBufferIndex > 0 )
+			{
+				kMemCpy(&data[iCNT%10], vcCommandBuffer, iCommandBufferIndex+1);
+				// è€Œã…»ã¤Â“Âœ è¸°Â„Âì‡±Â—Â ÂÂˆÂŠÂ” ï§Â…ï¿½ë±€ÂÂ„ Â‹ã…½Â–Â‰
+				vcCommandBuffer[ iCommandBufferIndex ] = '\0';
+				kExecuteCommand( vcCommandBuffer );
+			}
+
+			if(iCommandBufferIndex > 0){
+				//ì¨ì± ì¨ŒÂ‰ì¨”ì§°Â€ì¨© DoubleLinkedListì©”ì§• ì¨©ì±¨Â€Â”
+				if(iCNT >= 10){
+					DownOn = 0;
+					Pop_Front(spDLL);
+				}
+				if(iCNT == 0){
+					Push_Empty(spDLL, &data[iCNT%10], &node[iCNT%10]);
+				}
+				else{
+					Push_Back(spDLL, &data[iCNT%10], &node[iCNT%10]);
+				}
+				++iCNT;
+			}
+
+			// Â”Â„æ¿¡Ñ‹Â”Â„ÂŠ ç•°Âœï¿½ è«› è€Œã…»ã¤Â“Âœ è¸°Â„Â ç¥Âˆæ¹²ê³ Â™Â”
+			kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE );            
+			kMemSet( vcCommandBuffer, '\0', CONSOLESHELL_MAXCOMMANDBUFFERCOUNT );
+			iCommandBufferIndex = 0;
+		}
+		// Â‹ÂœÂ”Â„ÂŠ Â‚, CAPS Lock, NUM Lock, Scroll LockÂÂ€ è‡¾ëŒÂ‹Âœ
+		else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) || ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) || ( bKey == KEY_SCROLLLOCK ) )
+		{
+			tabflag = 0;
+		}
+		else if((bKey == KEY_UP) || (bKey == KEY_DOWN)){
+			if(bKey == KEY_UP){
+				if(UPnDOWN > 0) DownOn = 1;
+
+				if((UPnDOWN == 0)&&(UpOn == 0)){
+					tmpData = IteratePrevList(spDLL, UPnDOWN);	
+					if(spDLL->m_spIterator!=spDLL->m_spHead) UPnDOWN++;
+					if((spDLL->m_spIterator == spDLL->m_spHead)){
+					}
+				}else if ((UPnDOWN == 1)&&(UpOn == 0)){
+					tmpData = IteratePrevList(spDLL, UPnDOWN);	
+					UpOn = 1;
+				}else if(UpOn == 1){
+					if(spDLL->m_spIterator!=spDLL->m_spHead) UPnDOWN++;
+
+					if((spDLL->m_spIterator == spDLL->m_spHead)){
+					}
+					
+					else tmpData = IteratePrevList(spDLL, UPnDOWN);
+				}
+
+				while(iCommandBufferIndex!=0){
+					kGetCursor( &iCursorX, &iCursorY );
+					kPrintStringXY( iCursorX - 1, iCursorY, " " );
+					kSetCursor( iCursorX - 1, iCursorY );
+				vcCommandBuffer[--iCommandBufferIndex] = '\0';
+				}
+
+				int ind = 0;
+				while(tmpData[ind]!=NULL){
+					vcCommandBuffer[iCommandBufferIndex] = tmpData[ind];
+					kPrintf("%c", tmpData[ind]);
+					iCommandBufferIndex++;
+					ind++;
+				}
+			}
+
+			if(bKey == KEY_DOWN){
+				UPnDOWN--;
+				if(UPnDOWN<0) {
+					UPnDOWN = 0;
+					DownOn = 0;
+				}
+				if(iCommandBufferIndex > 0)
+					tmpData = IterateNextList(spDLL,UPnDOWN);	
+				else tmpData = '\0';	
+				while(iCommandBufferIndex!=0){
+					kGetCursor( &iCursorX, &iCursorY );
+					kPrintStringXY( iCursorX - 1, iCursorY, " " );
+					kSetCursor( iCursorX - 1, iCursorY );
+				vcCommandBuffer[--iCommandBufferIndex] = '\0';
+				}
+				int ind = 0;
+				while(tmpData[ind]!=NULL){
+					vcCommandBuffer[iCommandBufferIndex++] = tmpData[ind];
+					kPrintf("%c", tmpData[ind]);
+					ind++;
+				}
+			}
+		}
+
+		else
+		{
+			// ***********TAB*****************//
+			if( bKey == KEY_TAB )
+			{
+				kExecuteTab(vcCommandBuffer, &iCommandBufferIndex, tabflag);
+				tabflag = 1;
+				continue;
+			}
+
+			// è¸°Â„Âì‡±Â—Â æ€¨ë“¦Â„Â Â‚â‘¥Â•Â„ÂÂˆÂÂ„ Â•ÂŒï§ÂŒ åª›Â€ÂŠ
+			if( iCommandBufferIndex < CONSOLESHELL_MAXCOMMANDBUFFERCOUNT )
+			{
+				tabflag = 0;
+				vcCommandBuffer[ iCommandBufferIndex++ ] = bKey;
+				kPrintf( "%c", bKey );
+			}
+		}
+	}
+}
+
+/*char* kSubstr( const char * str, int size)
+  {
+  char sub[100];
+  int i;
+  for(i = 0;i<size;i++){
+  sub[i] = str[i];
+  }
+//sub[i] = "\0";
+
+return sub;
+
+}*/
+
+void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
+{
+	int iCount;					//ï¿½Â„ï§£ è€Œã…»ã¤Â“Âœ åª›ï¿½ÂˆÂ˜
+	int iCommandLength;			//è€Œã…»ã¤Â“Âœ Â•Â˜Â‚Â˜ÂÂ˜ æ¹²ëª„Â
+	char subString[100];		//è€Œã…»ã¤Â“Âœsubstring
+
+	int pcCommandBufferLength;	// è¸°Â„Âì‡±Â—Â Â“ã…¼Â–ëŒÂ˜ æ¹²ëª„Â
+
+	int i;	
+	int j;
+	int cnt = 0;
+	int cmdIndex[100];
+	char* pCommand;
+
+
+	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+
+	pcCommandBufferLength = kStrLen(pcCommandBuffer);
+
+
+	for( i = 0 ; i < iCount ; i++ )
+	{
+		//bufferÂ—Â Â“ã…¼Â–ëŒÂ˜ æ¹²ëª„ÂëŒ€ÂŒÂ substring Â•ëŒï¼œæ¹²
+		pCommand = gs_vstCommandTable[i].pcCommand;
+
+		for(j = 0; j < pcCommandBufferLength; j++){
+			subString[j] = pCommand[j];
+		}
+		// è€Œã…»ã¤Â“ÂœÂÂ˜ Â‚ëŒÂšâ‘¹Â Âì‡±Â˜Â•Â˜ÂŠÂ”ï§Â€ å¯ƒÂ€Â‚
+		if(( kMemCmp( subString, pcCommandBuffer, pcCommandBufferLength ) == 0 ) )	//nullè‡¾ëª„ÂÂ Â™Â•Âëª…Â•ëŒ€ë‚«æ¹²
+		{
+			cnt++;
+			cmdIndex[i] = 1;
+		}
+		else
+		{
+			cmdIndex[i] = 0;
+		}
+
+	}
+
+	if(cnt == 0)
+	{
+		return;
+	}
+
+	else if(cnt == 1)
+	{
+		//int i;
+		for(i = 0; i < iCount; i++)
+		{
+			if(cmdIndex[i] == 1)	//ï§Â‡è¸°Âˆï§ ï§Â…ï¿½ë±€Â–ëŒÂëª„Â€ Â™Â•Â
+			{
+				break;
+			}
+		}
+
+		pCommand = gs_vstCommandTable[i].pcCommand;
+		iCommandLength = kStrLen(pCommand);
+
+		//int j;
+		for(j = pcCommandBufferLength; j < iCommandLength; j++)
+		{
+			if(*iCommandBufferIndex < CONSOLESHELL_MAXCOMMANDBUFFERCOUNT )
+			{
+				pcCommandBuffer[ (int)(*iCommandBufferIndex)++ ] = pCommand[j];
+				kPrintf( "%c", pCommand[j] );
+			}
+		}
+	}
+	//cnt > 1
+	else{
+
+		char cmpChar = '\0';
+		int miss = 0;
+		int pCommandIndex = pcCommandBufferLength;
+
+		for(int idx = 0; idx < 10;idx++){
+			cmpChar = '\0';
+			for(i = 0; i < iCount; i++){
+
+				pCommand = gs_vstCommandTable[i].pcCommand;
+
+				if(cmdIndex[i] == 1){	//Âì‡±Â˜Â•Â˜ÂŠÂ”å¯ƒÂŒ ÂÂˆÂÂ„Â•ÂŒ
+
+					if(cmpChar == '\0')	{
+						cmpChar	= pCommand[pCommandIndex];
+					}
+
+					else{
+						if(cmpChar == pCommand[pCommandIndex]){
+						}
+						else{
+							miss = 1;
+							break;
+						}
+					}
+
+				}
+			}
+			if(!miss){
+				pcCommandBuffer[ (int)(*iCommandBufferIndex)++ ] = cmpChar;
+				kPrintf( "%c", cmpChar);
+				miss = 0;
+			}
+			pCommandIndex++;
+		}
+
+		int tabcnt = 0;
+		int line = 1;
+
+
+		if(tabflag == 1){
+			kPrintf("\n");
+			for(i = 0;i < iCount; i++){
+				if(cmdIndex[i] == 1){
+					kPrintf("%s\t\t",gs_vstCommandTable[i].pcCommand);
+					tabcnt++;
+				
+					if(!(tabcnt % 3) && ( line < cnt / 3)){
+						kPrintf("\n");
+						line++;
+					}
+				}
+			}
+			kPrintf("\n");
+			kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE ); 
+ 			kPrintf("%s", pcCommandBuffer);
+
+		}
+	}
 }
 
 /*
- *  Ä¿¸Çµå ¹öÆÛ¿¡ ÀÖ´Â Ä¿¸Çµå¸¦ ºñ±³ÇÏ¿© ÇØ´ç Ä¿¸Çµå¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö¸¦ ¼öÇà
+ *  è€Œã…»ã¤Â“Âœ è¸°Â„Âì‡±Â—Â ÂÂˆÂŠÂ” è€Œã…»ã¤Â“Âœç‘œ é®Â„æ´ÂÂ•Â˜Â— Â•ëŒ€Â‹ è€Œã…»ã¤Â“Âœç‘œ ï§£Â˜ç”±Ñ‹Â•Â˜ÂŠÂ” Â•â‘¥ÂˆÂ˜ç‘œ ÂˆÂ˜Â–Â‰
  */
 void kExecuteCommand( const char* pcCommandBuffer )
 {
-    int i, iSpaceIndex;
-    int iCommandBufferLength, iCommandLength;
-    int iCount;
-    
-    // °ø¹éÀ¸·Î ±¸ºĞµÈ Ä¿¸Çµå¸¦ ÃßÃâ
-    iCommandBufferLength = kStrLen( pcCommandBuffer );
-    for( iSpaceIndex = 0 ; iSpaceIndex < iCommandBufferLength ; iSpaceIndex++ )
-    {
-        if( pcCommandBuffer[ iSpaceIndex ] == ' ' )
-        {
-            break;
-        }
-    }
-    
-    // Ä¿¸Çµå Å×ÀÌºíÀ» °Ë»çÇØ¼­ µ¿ÀÏÇÑ ÀÌ¸§ÀÇ Ä¿¸Çµå°¡ ÀÖ´ÂÁö È®ÀÎ
-    iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
-    for( i = 0 ; i < iCount ; i++ )
-    {
-        iCommandLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
-        // Ä¿¸ÇµåÀÇ ±æÀÌ¿Í ³»¿ëÀÌ ¿ÏÀüÈ÷ ÀÏÄ¡ÇÏ´ÂÁö °Ë»ç
-        if( ( iCommandLength == iSpaceIndex ) &&
-            ( kMemCmp( gs_vstCommandTable[ i ].pcCommand, pcCommandBuffer,
-                       iSpaceIndex ) == 0 ) )
-        {
-            gs_vstCommandTable[ i ].pfFunction( pcCommandBuffer + iSpaceIndex + 1 );
-            break;
-        }
-    }
+	int i, iSpaceIndex;
+	int iCommandBufferLength, iCommandLength;
+	int iCount;
 
-    // ¸®½ºÆ®¿¡¼­ Ã£À» ¼ö ¾ø´Ù¸é ¿¡·¯ Ãâ·Â
-    if( i >= iCount )
-    {
-        kPrintf( "'%s' is not found.\n", pcCommandBuffer );
-    }
+	// æ€¨ë“¬ê°šÂœì‡°Âœ æ´Ñ‰Â„ÂÂœ è€Œã…»ã¤Â“Âœç‘œ ç•°Â”ç•°Âœ
+	iCommandBufferLength = kStrLen( pcCommandBuffer );
+	for( iSpaceIndex = 0 ; iSpaceIndex < iCommandBufferLength ; iSpaceIndex++ )
+	{
+		if( pcCommandBuffer[ iSpaceIndex ] == ' ' )
+		{
+			break;
+		}
+	}
+
+	// è€Œã…»ã¤Â“Âœ Â…ÂŒÂëŒ€Â”ÂÂ„ å¯ƒÂ€Â‚Ñ‹Â•ëŒÂ„Âœ Â™Âì‡³Â•Âœ ÂëŒ€Â„ÂÂ˜ è€Œã…»ã¤Â“Âœåª›Â€ ÂÂˆÂŠÂ”ï§Â€ Â™Â•Â
+	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+	for( i = 0 ; i < iCount ; i++ )
+	{
+		iCommandLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
+		// è€Œã…»ã¤Â“ÂœÂÂ˜ æ¹²ëª„ÂëŒÂ™Â€ Â‚ëŒÂšâ‘¹Â Â™Â„ï¿½Â„ÂÂˆ Âì‡±Â˜Â•Â˜ÂŠÂ”ï§Â€ å¯ƒÂ€Â‚
+		if( ( iCommandLength == iSpaceIndex ) &&
+				( kMemCmp( gs_vstCommandTable[ i ].pcCommand, pcCommandBuffer,
+						   iSpaceIndex ) == 0 ) )
+		{
+			gs_vstCommandTable[ i ].pfFunction( pcCommandBuffer + iSpaceIndex + 1 );
+			break;
+		}
+	}
+
+	// ç”±ÑŠÂŠã…½ÂŠëª„Â—ÂÂ„Âœ ï§¡ì– ÂÂ„ ÂˆÂ˜ Â—Â†Â‹ã…»ãˆƒ Â—ÂÂŸ ç•°Âœï¿½
+	if( i >= iCount )
+	{
+		kPrintf( "'%s' is not found.\n", pcCommandBuffer );
+	}
 }
 
 /**
- *  ÆÄ¶ó¹ÌÅÍ ÀÚ·á±¸Á¶¸¦ ÃÊ±âÈ­
+ *  ÂŒÂŒÂì‡°ï¿½Â„ ÂÂçŒ·ÂŒæ´ÑŠâ€œç‘œ ç¥Âˆæ¹²ê³ Â™Â”
  */
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter )
 {
-    pstList->pcBuffer = pcParameter;
-    pstList->iLength = kStrLen( pcParameter );
-    pstList->iCurrentPosition = 0;
+	pstList->pcBuffer = pcParameter;
+	pstList->iLength = kStrLen( pcParameter );
+	pstList->iCurrentPosition = 0;
 }
 
 /**
- *  °ø¹éÀ¸·Î ±¸ºĞµÈ ÆÄ¶ó¹ÌÅÍÀÇ ³»¿ë°ú ±æÀÌ¸¦ ¹İÈ¯
+ *  æ€¨ë“¬ê°šÂœì‡°Âœ æ´Ñ‰Â„ÂÂœ ÂŒÂŒÂì‡°ï¿½Â„ê³—ÂÂ˜ Â‚ëŒÂšâ‘·ë‚µ æ¹²ëª„ÂëŒ€ï¿½ è«›Â˜Â™Â˜
  */
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter )
 {
-    int i;
-    int iLength;
+	int i;
+	int iLength;
 
-    // ´õ ÀÌ»ó ÆÄ¶ó¹ÌÅÍ°¡ ¾øÀ¸¸é ³ª°¨
-    if( pstList->iLength <= pstList->iCurrentPosition )
-    {
-        return 0;
-    }
-    
-    // ¹öÆÛÀÇ ±æÀÌ¸¸Å­ ÀÌµ¿ÇÏ¸é¼­ °ø¹éÀ» °Ë»ö
-    for( i = pstList->iCurrentPosition ; i < pstList->iLength ; i++ )
-    {
-        if( pstList->pcBuffer[ i ] == ' ' )
-        {
-            break;
-        }
-    }
-    
-    // ÆÄ¶ó¹ÌÅÍ¸¦ º¹»çÇÏ°í ±æÀÌ¸¦ ¹İÈ¯
-    kMemCpy( pcParameter, pstList->pcBuffer + pstList->iCurrentPosition, i );
-    iLength = i - pstList->iCurrentPosition;
-    pcParameter[ iLength ] = '\0';
+	// ÂÂ” ÂëŒÂƒÂ ÂŒÂŒÂì‡°ï¿½Â„ê³ŒÂ€ Â—Â†Âœì‡°ãˆƒ Â‚Â˜åª›Â
+	if( pstList->iLength <= pstList->iCurrentPosition )
+	{
+		return 0;
+	}
 
-    // ÆÄ¶ó¹ÌÅÍÀÇ À§Ä¡ ¾÷µ¥ÀÌÆ®
-    pstList->iCurrentPosition += iLength + 1;
-    return iLength;
+	// è¸°Â„Âì‡±ÂÂ˜ æ¹²ëª„ÂëŒ€ÂŒÂ ÂëŒ€Â™Â•Â˜ï§ëŒÂ„Âœ æ€¨ë“¬ê°šÂÂ„ å¯ƒÂ€ÂƒÂ‰
+	for( i = pstList->iCurrentPosition ; i < pstList->iLength ; i++ )
+	{
+		if( pstList->pcBuffer[ i ] == ' ' )
+		{
+			break;
+		}
+	}
+
+	// ÂŒÂŒÂì‡°ï¿½Â„ê³•ï¿½ è¹‚ë“­Â‚Ñ‹Â•Â˜æ€¨ æ¹²ëª„ÂëŒ€ï¿½ è«›Â˜Â™Â˜
+	kMemCpy( pcParameter, pstList->pcBuffer + pstList->iCurrentPosition, i );
+	iLength = i - pstList->iCurrentPosition;
+	pcParameter[ iLength ] = '\0';
+
+	// ÂŒÂŒÂì‡°ï¿½Â„ê³—ÂÂ˜ ÂœÂ„ç§»Â˜ Â—Â…Âê³—ÂëŒ„ÂŠ
+	pstList->iCurrentPosition += iLength + 1;
+	return iLength;
 }
-    
+
 //==============================================================================
-//  Ä¿¸Çµå¸¦ Ã³¸®ÇÏ´Â ÄÚµå
+//  è€Œã…»ã¤Â“Âœç‘œ ï§£Â˜ç”±Ñ‹Â•Â˜ÂŠÂ” è‚„Â”Â“Âœ
 //==============================================================================
 /**
- *  ¼Ğ µµ¿ò¸»À» Ãâ·Â
+ *  Â… Â„Â›Â€ï§ÂÂÂ„ ç•°Âœï¿½
  */
 void kHelp( const char* pcCommandBuffer )
 {
-    int i;
-    int iCount;
-    int iCursorX, iCursorY;
-    int iLength, iMaxCommandLength = 0;
-    
-    
-    kPrintf( "=========================================================\n" );
-    kPrintf( "                    MINT64 Shell Help                    \n" );
-    kPrintf( "=========================================================\n" );
-    
-    iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+	int i;
+	int iCount;
+	int iCursorX, iCursorY;
+	int iLength, iMaxCommandLength = 0;
 
-    // °¡Àå ±ä Ä¿¸ÇµåÀÇ ±æÀÌ¸¦ °è»ê
-    for( i = 0 ; i < iCount ; i++ )
-    {
-        iLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
-        if( iLength > iMaxCommandLength )
-        {
-            iMaxCommandLength = iLength;
-        }
-    }
-    
-    // µµ¿ò¸» Ãâ·Â
-    for( i = 0 ; i < iCount ; i++ )
-    {
-        kPrintf( "%s", gs_vstCommandTable[ i ].pcCommand );
-        kGetCursor( &iCursorX, &iCursorY );
-        kSetCursor( iMaxCommandLength, iCursorY );
-        kPrintf( "  - %s\n", gs_vstCommandTable[ i ].pcHelp );
-    }
+
+	kPrintf( "=========================================================\n" );
+	kPrintf( "                    MINT64 Shell Help                    \n" );
+	kPrintf( "=========================================================\n" );
+
+	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+
+	// åª›Â€Â æ¹² è€Œã…»ã¤Â“ÂœÂÂ˜ æ¹²ëª„ÂëŒ€ï¿½ æ€¨Â„Â‚
+	for( i = 0 ; i < iCount ; i++ )
+	{
+		iLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
+		if( iLength > iMaxCommandLength )
+		{
+			iMaxCommandLength = iLength;
+		}
+	}
+
+	// Â„Â›Â€ï§Â ç•°Âœï¿½
+	for( i = 0 ; i < iCount ; i++ )
+	{
+		kPrintf( "%s", gs_vstCommandTable[ i ].pcCommand );
+		kGetCursor( &iCursorX, &iCursorY );
+		kSetCursor( iMaxCommandLength, iCursorY );
+		kPrintf( "  - %s\n", gs_vstCommandTable[ i ].pcHelp );
+	}
 }
 
 /**
- *  È­¸éÀ» Áö¿ò 
+ *  Â™Â”ï§ëŒÂÂ„ ï§Â€Â›Â€ 
  */
 void kCls( const char* pcParameterBuffer )
 {
-    // ¸Ç À­ÁÙÀº µğ¹ö±ë ¿ëÀ¸·Î »ç¿ëÇÏ¹Ç·Î È­¸éÀ» Áö¿î ÈÄ, ¶óÀÎ 1·Î Ä¿¼­ ÀÌµ¿
-    kClearScreen();
-    kSetCursor( 0, 1 );
+	// ï§ ÂœÂ—ä»¥Â„ÂÂ€ Â”Â”è¸°Â„æºÂ… Âšâ‘¹Âœì‡°Âœ Â‚ÑŠÂšâ‘ºÂ•Â˜èª˜Â€æ¿¡Âœ Â™Â”ï§ëŒÂÂ„ ï§Â€Âš Â›Â„, Âì‡±Â 1æ¿¡Âœ è€Œã…¼Â„Âœ ÂëŒ€Â™
+	kClearScreen();
+	kSetCursor( 0, 1 );
 }
 
 /**
- *  ÃÑ ¸Ş¸ğ¸® Å©±â¸¦ Ãâ·Â
+ *  ç¥Â ï§Â”ï§â‘¤â” ÂÑˆë¦°ç‘œ ç•°Âœï¿½
  */
 void kShowTotalRAMSize( const char* pcParameterBuffer )
 {
-    kPrintf( "Total RAM Size = %d MB\n", kGetTotalRAMSize() );
+	kPrintf( "Total RAM Size = %d MB\n", kGetTotalRAMSize() );
 }
 
 /**
- *  ¹®ÀÚ¿­·Î µÈ ¼ıÀÚ¸¦ ¼ıÀÚ·Î º¯È¯ÇÏ¿© È­¸é¿¡ Ãâ·Â
+ *  è‡¾ëª„ÂÂÂ—ëŒ€Âœ ÂÂœ Âˆãƒ¬ÂÂç‘œ Âˆãƒ¬ÂÂæ¿¡Âœ è¹‚Â€Â™Â˜Â•Â˜Â— Â™Â”ï§ëŒÂ—Â ç•°Âœï¿½
  */
 void kStringToDecimalHexTest( const char* pcParameterBuffer )
 {
-    char vcParameter[ 100 ];
-    int iLength;
-    PARAMETERLIST stList;
-    int iCount = 0;
-    long lValue;
-    
-    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
-    kInitializeParameter( &stList, pcParameterBuffer );
-    
-    while( 1 )
-    {
-        // ´ÙÀ½ ÆÄ¶ó¹ÌÅÍ¸¦ ±¸ÇÔ, ÆÄ¶ó¹ÌÅÍÀÇ ±æÀÌ°¡ 0ÀÌ¸é ÆÄ¶ó¹ÌÅÍ°¡ ¾ø´Â °ÍÀÌ¹Ç·Î
-        // Á¾·á
-        iLength = kGetNextParameter( &stList, vcParameter );
-        if( iLength == 0 )
-        {
-            break;
-        }
+	char vcParameter[ 100 ];
+	int iLength;
+	PARAMETERLIST stList;
+	int iCount = 0;
+	long lValue;
 
-        // ÆÄ¶ó¹ÌÅÍ¿¡ ´ëÇÑ Á¤º¸¸¦ Ãâ·ÂÇÏ°í 16Áø¼öÀÎÁö 10Áø¼öÀÎÁö ÆÇ´ÜÇÏ¿© º¯È¯ÇÑ ÈÄ
-        // °á°ú¸¦ printf·Î Ãâ·Â
-        kPrintf( "Param %d = '%s', Length = %d, ", iCount + 1, 
-                 vcParameter, iLength );
+	// ÂŒÂŒÂì‡°ï¿½Â„ ç¥Âˆæ¹²ê³ Â™Â”
+	kInitializeParameter( &stList, pcParameterBuffer );
 
-        // 0x·Î ½ÃÀÛÇÏ¸é 16Áø¼ö, ±×¿Ü´Â 10Áø¼ö·Î ÆÇ´Ü
-        if( kMemCmp( vcParameter, "0x", 2 ) == 0 )
-        {
-            lValue = kAToI( vcParameter + 2, 16 );
-            kPrintf( "HEX Value = %q\n", lValue );
-        }
-        else
-        {
-            lValue = kAToI( vcParameter, 10 );
-            kPrintf( "Decimal Value = %d\n", lValue );
-        }
-        
-        iCount++;
-    }
+	while( 1 )
+	{
+		// Â‹ã…¼ÂÂŒ ÂŒÂŒÂì‡°ï¿½Â„ê³•ï¿½ æ´Ñ‹Â•, ÂŒÂŒÂì‡°ï¿½Â„ê³—ÂÂ˜ æ¹²ëª„Âë‹¿Â€ 0ÂëŒ€ãˆƒ ÂŒÂŒÂì‡°ï¿½Â„ê³ŒÂ€ Â—Â†ÂŠÂ” å¯ƒÂƒÂëŒ€Â€æ¿¡Âœ
+		// é†«Â…çŒ·ÂŒ
+		iLength = kGetNextParameter( &stList, vcParameter );
+		if( iLength == 0 )
+		{
+			break;
+		}
+
+		// ÂŒÂŒÂì‡°ï¿½Â„ê³—Â—Â ÂŒÂ€Â•Âœ ï¿½Â•è¹‚ëŒ€ï¿½ ç•°Âœï¿½Î½Â•Â˜æ€¨ 16ï§Â„ÂˆÂ˜Âëª„Â€ 10ï§Â„ÂˆÂ˜Âëª„Â€ ÂŒÂÂ‹â‘¦Â•Â˜Â— è¹‚Â€Â™Â˜Â•Âœ Â›Â„
+		// å¯ƒê³Œë‚µç‘œ printfæ¿¡Âœ ç•°Âœï¿½
+		kPrintf( "Param %d = '%s', Length = %d, ", iCount + 1, 
+				vcParameter, iLength );
+
+		// 0xæ¿¡Âœ Â‹ÂœÂÂ‘Â•Â˜ï§ 16ï§Â„ÂˆÂ˜, æ´¹ëª„Â™ëªƒÂŠÂ” 10ï§Â„ÂˆÂ˜æ¿¡Âœ ÂŒÂÂ‹
+		if( kMemCmp( vcParameter, "0x", 2 ) == 0 )
+		{
+			lValue = kAToI( vcParameter + 2, 16 );
+			kPrintf( "HEX Value = %q\n", lValue );
+		}
+		else
+		{
+			lValue = kAToI( vcParameter, 10 );
+			kPrintf( "Decimal Value = %d\n", lValue );
+		}
+
+		iCount++;
+	}
 }
 
 /**
- *  PC¸¦ Àç½ÃÀÛ(Reboot)
+ *  PCç‘œ ÂÑŠÂ‹ÂœÂÂ‘(Reboot)
  */
 void kShutdown( const char* pcParamegerBuffer )
 {
-    kPrintf( "System Shutdown Start...\n" );
-    
-    // Å°º¸µå ÄÁÆ®·Ñ·¯¸¦ ÅëÇØ PC¸¦ Àç½ÃÀÛ
-    kPrintf( "Press Any Key To Reboot PC..." );
-    kGetCh();
-    kReboot();
+	kPrintf( "System Shutdown Start...\n" );
+
+	// Â‚ã…»ë‚«Â“Âœ è€Œâ‘¦ÂŠëªƒÂ·ÂŸÑ‰ï¿½ Â†ë“¯Â• PCç‘œ ÂÑŠÂ‹ÂœÂÂ‘
+	kPrintf( "Press Any Key To Reboot PC..." );
+	kGetCh();
+	kReboot();
 }
 
+void kPagefault( const char* pcParameterBuffer )
+{
+	DWORD **faultptr;
+	faultptr = 0x1ff000;
+	DWORD test = *faultptr;
+}
+
+void kProtectionfault( const char* pcParameterBuffer )
+{
+	DWORD **faultptr;
+	faultptr = 0x1ff000;
+	*faultptr = 0xdeadbeef;
+}
 void kDummy(const char* pcParamegerBuffer){}

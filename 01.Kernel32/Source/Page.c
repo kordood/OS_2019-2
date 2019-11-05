@@ -68,11 +68,8 @@ void kInitializePageTables( void )
 	dwMappingAddress = 0;
 	for( i = 0 ; i < PAGE_MAXENTRYCOUNT; i++ )
 	{
-		if( dwMappingAddress == 0x1fe000 ){
-			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_DEFAULT, 0 );
-		}
-		else if( dwMappingAddress == 0x1ff000 ){
-			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_P, 0 );
+		if( dwMappingAddress == 0x1ff000 ){
+			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, 0, 0 );
 		}
 		else{
 			kSetPageEntryData( &( pstPTEntry[ i ] ), 0, dwMappingAddress, PAGE_FLAGS_DEFAULT, 0 );

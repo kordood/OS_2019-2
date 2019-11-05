@@ -30,11 +30,11 @@ void Main( void )
     kPrintf( "IA-32e C Language Kernel Start..............[Pass]\n" );
     kPrintf( "Initialize Console..........................[Pass]\n" );
     kSetCursor( 45, iCursorY++ );
-	iCursorY += 16;
+	iCursorY += 13;
     kPrintStringMapped( 0, 13, "This message is printed through the video memory relocated to 0xAB8000" );
     kSetCursor( 0, iCursorY++ );
 
-	kRWROTest();
+	// kRWROTest(); unuse
     kGetCursor( &iCursorX, &iCursorY );
     kPrintf( "GDT Initialize And Switch For IA-32e Mode...[    ]" );
     kInitializeGDTTableAndTSS();

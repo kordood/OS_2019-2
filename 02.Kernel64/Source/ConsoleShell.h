@@ -3,7 +3,7 @@
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   ÄÜ¼Ö ¼Ğ¿¡ °ü·ÃµÈ Çì´õ ÆÄÀÏ
+ *  brief   ì½˜ì†” ì…¸ì— ê´€ë ¨ëœ í—¤ë” íŒŒì¼
  */
 
 #ifndef __CONSOLESHELL_H__
@@ -13,43 +13,43 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// ¸ÅÅ©·Î
+// ë§¤í¬ë¡œ
 //
 ////////////////////////////////////////////////////////////////////////////////
 #define CONSOLESHELL_MAXCOMMANDBUFFERCOUNT  300
-#define CONSOLESHELL_PROMPTMESSAGE          "MINT64>"
+#define CONSOLESHELL_PROMPTMESSAGE          "MINT64> "
 
-// ¹®ÀÚ¿­ Æ÷ÀÎÅÍ¸¦ ÆÄ¶ó¹ÌÅÍ·Î ¹Ş´Â ÇÔ¼ö Æ÷ÀÎÅÍ Å¸ÀÔ Á¤ÀÇ
+// ë¬¸ìì—´ í¬ì¸í„°ë¥¼ íŒŒë¼ë¯¸í„°ë¡œ ë°›ëŠ” í•¨ìˆ˜ í¬ì¸í„° íƒ€ì… ì •ì˜
 typedef void ( * CommandFunction ) ( const char* pcParameter );
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// ±¸Á¶Ã¼
+// êµ¬ì¡°ì²´
 //
 ////////////////////////////////////////////////////////////////////////////////
-// 1¹ÙÀÌÆ®·Î Á¤·Ä
+// 1ë°”ì´íŠ¸ë¡œ ì •ë ¬
 #pragma pack( push, 1 )
 
-// ¼ĞÀÇ Ä¿¸Çµå¸¦ ÀúÀåÇÏ´Â ÀÚ·á±¸Á¶
+// ì…¸ì˜ ì»¤ë§¨ë“œë¥¼ ì €ì¥í•˜ëŠ” ìë£Œêµ¬ì¡°
 typedef struct kShellCommandEntryStruct
 {
-    // Ä¿¸Çµå ¹®ÀÚ¿­
+    // ì»¤ë§¨ë“œ ë¬¸ìì—´
     char* pcCommand;
-    // Ä¿¸ÇµåÀÇ µµ¿ò¸»
+    // ì»¤ë§¨ë“œì˜ ë„ì›€ë§
     char* pcHelp;
-    // Ä¿¸Çµå¸¦ ¼öÇàÇÏ´Â ÇÔ¼öÀÇ Æ÷ÀÎÅÍ
+    // ì»¤ë§¨ë“œë¥¼ ìˆ˜í–‰í•˜ëŠ” í•¨ìˆ˜ì˜ í¬ì¸í„°
     CommandFunction pfFunction;
 } SHELLCOMMANDENTRY;
 
-// ÆÄ¶ó¹ÌÅÍ¸¦ Ã³¸®ÇÏ±âÀ§ÇØ Á¤º¸¸¦ ÀúÀåÇÏ´Â ÀÚ·á±¸Á¶
+// íŒŒë¼ë¯¸í„°ë¥¼ ì²˜ë¦¬í•˜ê¸°ìœ„í•´ ì •ë³´ë¥¼ ì €ì¥í•˜ëŠ” ìë£Œêµ¬ì¡°
 typedef struct kParameterListStruct
 {
-    // ÆÄ¶ó¹ÌÅÍ ¹öÆÛÀÇ ¾îµå·¹½º
+    // íŒŒë¼ë¯¸í„° ë²„í¼ì˜ ì–´ë“œë ˆìŠ¤
     const char* pcBuffer;
-    // ÆÄ¶ó¹ÌÅÍÀÇ ±æÀÌ
+    // íŒŒë¼ë¯¸í„°ì˜ ê¸¸ì´
     int iLength;
-    // ÇöÀç Ã³¸®ÇÒ ÆÄ¶ó¹ÌÅÍ°¡ ½ÃÀÛÇÏ´Â À§Ä¡
+    // í˜„ì¬ ì²˜ë¦¬í•  íŒŒë¼ë¯¸í„°ê°€ ì‹œì‘í•˜ëŠ” ìœ„ì¹˜
     int iCurrentPosition;
 } PARAMETERLIST;
 
@@ -57,21 +57,27 @@ typedef struct kParameterListStruct
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// ÇÔ¼ö
+// í•¨ìˆ˜
 //
 ////////////////////////////////////////////////////////////////////////////////
-// ½ÇÁ¦ ¼Ğ ÄÚµå
+// ì‹¤ì œ ì…¸ ì½”ë“œ
 void kStartConsoleShell( void );
 void kExecuteCommand( const char* pcCommandBuffer );
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter );
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter );
 
-// Ä¿¸Çµå¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö
+//
+void kExecuteTab( char* pcCommadBuffer, int* iCommandBufferIndex, int tabflag);
+
+// ì»¤ë§¨ë“œë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜
 void kHelp( const char* pcParameterBuffer );
 void kCls( const char* pcParameterBuffer );
 void kShowTotalRAMSize( const char* pcParameterBuffer );
 void kStringToDecimalHexTest( const char* pcParameterBuffer );
 void kShutdown( const char* pcParamegerBuffer );
+
+void kPagefault( const char* pcParameterBuffer );
+void kProtectionfault( const char* pcParameterBuffer );
 
 void kDummy(const char* pcParanegerBuffer);
 #endif /*__CONSOLESHELL_H__*/
