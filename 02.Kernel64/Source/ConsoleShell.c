@@ -10,6 +10,7 @@
 #include "Console.h"
 #include "Keyboard.h"
 #include "Utility.h"
+#include "DoubleLinkedList.h"
 
 // 커맨드 테이블 정의
 SHELLCOMMANDENTRY gs_vstCommandTable[] =
@@ -46,11 +47,26 @@ void kStartConsoleShell( void )
 	BYTE bKey;
 	int iCursorX, iCursorY;
 
+	// ¸í·É¹® 10°³ ÀúÀå¿ë list »ý¼º
+	DoubleLinkedList spdll;
+	DoubleLinkedList* spDLL = CreateLinkedList(&spdll);
+	int iCNT = 0;
+	SNode node[10];
+	char data[10][CONSOLESHELL_MAXCOMMANDBUFFERCOUNT];
+	char* tmpData;
+	int UPnDOWN = 0;
+	int DownOn = 0;
+	int UpOn = 0;
+
 	// 프롬프트 출력
 	kPrintf( CONSOLESHELL_PROMPTMESSAGE );
 
 	while( 1 )
 	{
+		if(iCommandBufferIndex == 0){
+			DownOn = 0;
+			UPnDOWN = 0;
+		}
 		// 키가 수신될 때까지 대기
 		bKey = kGetCh();
 		// Backspace 키 처리
@@ -66,6 +82,12 @@ void kStartConsoleShell( void )
 				kSetCursor( iCursorX - 1, iCursorY );
 				vcCommandBuffer[ --iCommandBufferIndex ] = '\0';
 				
+				if(iCommandBufferIndex == 0){
+					UPnDOWN = 0;
+					DownOn = 0;
+					UpOn = 0;
+					spDLL->m_spIterator = spDLL->m_spTail;		
+				}
 			}
 		}
 		// 엔터 키 처리
@@ -73,12 +95,31 @@ void kStartConsoleShell( void )
 		{
 			tabflag = 0;
 			kPrintf( "\n" );
+			DownOn = 0;
+			UPnDOWN = 0;
+			UpOn = 0;
 
 			if( iCommandBufferIndex > 0 )
 			{
+				kMemCpy(&data[iCNT%10], vcCommandBuffer, iCommandBufferIndex+1);
 				// 커맨드 버퍼에 있는 명령을 실행
 				vcCommandBuffer[ iCommandBufferIndex ] = '\0';
 				kExecuteCommand( vcCommandBuffer );
+			}
+
+			if(iCommandBufferIndex > 0){
+				//¸í·É¹®À» DoubleLinkedList¿¡ »ðÀÔ
+				if(iCNT >= 10){
+					DownOn = 0;
+					Pop_Front(spDLL);
+				}
+				if(iCNT == 0){
+					Push_Empty(spDLL, &data[iCNT%10], &node[iCNT%10]);
+				}
+				else{
+					Push_Back(spDLL, &data[iCNT%10], &node[iCNT%10]);
+				}
+				++iCNT;
 			}
 
 			// 프롬프트 출력 및 커맨드 버퍼 초기화
@@ -91,6 +132,67 @@ void kStartConsoleShell( void )
 		{
 			tabflag = 0;
 		}
+		else if((bKey == KEY_UP) || (bKey == KEY_DOWN)){
+			if(bKey == KEY_UP){
+				if(UPnDOWN > 0) DownOn = 1;
+
+				if((UPnDOWN == 0)&&(UpOn == 0)){
+					tmpData = IteratePrevList(spDLL, UPnDOWN);	
+					if(spDLL->m_spIterator!=spDLL->m_spHead) UPnDOWN++;
+					if((spDLL->m_spIterator == spDLL->m_spHead)){
+					}
+				}else if ((UPnDOWN == 1)&&(UpOn == 0)){
+					tmpData = IteratePrevList(spDLL, UPnDOWN);	
+					UpOn = 1;
+				}else if(UpOn == 1){
+					if(spDLL->m_spIterator!=spDLL->m_spHead) UPnDOWN++;
+
+					if((spDLL->m_spIterator == spDLL->m_spHead)){
+					}
+					
+					else tmpData = IteratePrevList(spDLL, UPnDOWN);
+				}
+
+				while(iCommandBufferIndex!=0){
+					kGetCursor( &iCursorX, &iCursorY );
+					kPrintStringXY( iCursorX - 1, iCursorY, " " );
+					kSetCursor( iCursorX - 1, iCursorY );
+				vcCommandBuffer[--iCommandBufferIndex] = '\0';
+				}
+
+				int ind = 0;
+				while(tmpData[ind]!=NULL){
+					vcCommandBuffer[iCommandBufferIndex] = tmpData[ind];
+					kPrintf("%c", tmpData[ind]);
+					iCommandBufferIndex++;
+					ind++;
+				}
+			}
+
+			if(bKey == KEY_DOWN){
+				UPnDOWN--;
+				if(UPnDOWN<0) {
+					UPnDOWN = 0;
+					DownOn = 0;
+				}
+				if(iCommandBufferIndex > 0)
+					tmpData = IterateNextList(spDLL,UPnDOWN);	
+				else tmpData = '\0';	
+				while(iCommandBufferIndex!=0){
+					kGetCursor( &iCursorX, &iCursorY );
+					kPrintStringXY( iCursorX - 1, iCursorY, " " );
+					kSetCursor( iCursorX - 1, iCursorY );
+				vcCommandBuffer[--iCommandBufferIndex] = '\0';
+				}
+				int ind = 0;
+				while(tmpData[ind]!=NULL){
+					vcCommandBuffer[iCommandBufferIndex++] = tmpData[ind];
+					kPrintf("%c", tmpData[ind]);
+					ind++;
+				}
+			}
+		}
+
 		else
 		{
 			// ***********TAB*****************//
@@ -241,7 +343,7 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 			kPrintf("\n");
 			for(i = 0;i < iCount; i++){
 				if(cmdIndex[i] == 1){
-					kPrintf("%s\t",gs_vstCommandTable[i].pcCommand);
+					kPrintf("%s\t\t",gs_vstCommandTable[i].pcCommand);
 					tabcnt++;
 				
 					if(!(tabcnt % 3) && ( line < cnt / 3)){
