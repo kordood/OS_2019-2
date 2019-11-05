@@ -3,7 +3,7 @@
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   콘솔 셸에 관련된 소스 파일
+ *  brief   肄 몄 愿�⑤  
  */
 
 #include "ConsoleShell.h"
@@ -12,7 +12,7 @@
 #include "Utility.h"
 #include "DoubleLinkedList.h"
 
-// 커맨드 테이블 정의
+// 而ㅻ㎤ 대 �
 SHELLCOMMANDENTRY gs_vstCommandTable[] =
 {
 	{ "help", "Show Help", kHelp },
@@ -34,11 +34,9 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
 };                                     
 
 int tabflag = 0;
-//=============================================================================
-//  실제 셸을 구성하는 코드
 //==============================================================================
 /**
- *  셸의 메인 루프
+ *  몄 硫 猷⑦
  */
 void kStartConsoleShell( void )
 {
@@ -47,7 +45,7 @@ void kStartConsoleShell( void )
 	BYTE bKey;
 	int iCursorX, iCursorY;
 
-	// ¸í·É¹® 10°³ ÀúÀå¿ë list »ý¼º
+	// 쨍챠쨌쨔짰 10째쨀 첬책쩔챘 list 쨩첵쩌쨘
 	DoubleLinkedList spdll;
 	DoubleLinkedList* spDLL = CreateLinkedList(&spdll);
 	int iCNT = 0;
@@ -58,7 +56,7 @@ void kStartConsoleShell( void )
 	int DownOn = 0;
 	int UpOn = 0;
 
-	// 프롬프트 출력
+	// 濡ы 異�
 	kPrintf( CONSOLESHELL_PROMPTMESSAGE );
 
 	while( 1 )
@@ -67,16 +65,16 @@ void kStartConsoleShell( void )
 			DownOn = 0;
 			UPnDOWN = 0;
 		}
-		// 키가 수신될 때까지 대기
+		// ㅺ  源吏 湲
 		bKey = kGetCh();
-		// Backspace 키 처리
+		// Backspace  泥由
 		if( bKey == KEY_BACKSPACE )
 		{
 			tabflag = 0;
 			if( iCommandBufferIndex > 0 )
 			{
-				// 현재 커서 위치를 얻어서 한 문자 앞으로 이동한 다음 공백을 출력하고 
-				// 커맨드 버퍼에서 마지막 문자 삭제
+				//  而ㅼ 移瑜 살댁  臾몄 쇰 대 ㅼ 怨듬갚 異�ν怨 
+				// 而ㅻ㎤ 踰쇱 留吏留 臾몄 �
 				kGetCursor( &iCursorX, &iCursorY );
 				kPrintStringXY( iCursorX - 1, iCursorY, " " );
 				kSetCursor( iCursorX - 1, iCursorY );
@@ -90,7 +88,7 @@ void kStartConsoleShell( void )
 				}
 			}
 		}
-		// 엔터 키 처리
+		//   泥由
 		else if( bKey == KEY_ENTER )
 		{
 			tabflag = 0;
@@ -102,13 +100,13 @@ void kStartConsoleShell( void )
 			if( iCommandBufferIndex > 0 )
 			{
 				kMemCpy(&data[iCNT%10], vcCommandBuffer, iCommandBufferIndex+1);
-				// 커맨드 버퍼에 있는 명령을 실행
+				// 而ㅻ㎤ 踰쇱  紐�뱀 ㅽ
 				vcCommandBuffer[ iCommandBufferIndex ] = '\0';
 				kExecuteCommand( vcCommandBuffer );
 			}
 
 			if(iCommandBufferIndex > 0){
-				//¸í·É¹®À» DoubleLinkedList¿¡ »ðÀÔ
+				//쨍챠쨌쨔짰쨩 DoubleLinkedList쩔징 쨩챨
 				if(iCNT >= 10){
 					DownOn = 0;
 					Pop_Front(spDLL);
@@ -122,12 +120,12 @@ void kStartConsoleShell( void )
 				++iCNT;
 			}
 
-			// 프롬프트 출력 및 커맨드 버퍼 초기화
+			// 濡ы 異� 諛 而ㅻ㎤ 踰 珥湲고
 			kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE );            
 			kMemSet( vcCommandBuffer, '\0', CONSOLESHELL_MAXCOMMANDBUFFERCOUNT );
 			iCommandBufferIndex = 0;
 		}
-		// 시프트 키, CAPS Lock, NUM Lock, Scroll Lock은 무시
+		//  , CAPS Lock, NUM Lock, Scroll Lock 臾댁
 		else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) || ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) || ( bKey == KEY_SCROLLLOCK ) )
 		{
 			tabflag = 0;
@@ -203,7 +201,7 @@ void kStartConsoleShell( void )
 				continue;
 			}
 
-			// 버퍼에 공간이 남아있을 때만 가능
+			// 踰쇱 怨듦 ⑥ 留 媛
 			if( iCommandBufferIndex < CONSOLESHELL_MAXCOMMANDBUFFERCOUNT )
 			{
 				tabflag = 0;
@@ -229,11 +227,11 @@ return sub;
 
 void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 {
-	int iCount;					//전체 커맨드 갯수
-	int iCommandLength;			//커맨드 하나의 길이
-	char subString[100];		//커맨드substring
+	int iCount;					//�泥 而ㅻ㎤ 媛�
+	int iCommandLength;			//而ㅻ㎤  湲몄
+	char subString[100];		//而ㅻ㎤substring
 
-	int pcCommandBufferLength;	// 버퍼에 들어온 길이
+	int pcCommandBufferLength;	// 踰쇱 ㅼ댁 湲몄
 
 	int i;	
 	int j;
@@ -249,14 +247,14 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 
 	for( i = 0 ; i < iCount ; i++ )
 	{
-		//buffer에 들어온 길이만큼 substring 해주기
+		//buffer ㅼ댁 湲몄대 substring 댁＜湲
 		pCommand = gs_vstCommandTable[i].pcCommand;
 
 		for(j = 0; j < pcCommandBufferLength; j++){
 			subString[j] = pCommand[j];
 		}
-		// 커맨드의 내용이 일치하는지 검사
-		if(( kMemCmp( subString, pcCommandBuffer, pcCommandBufferLength ) == 0 ) )	//null문자 확인해보기
+		// 而ㅻ㎤ 댁⑹ 쇱吏 寃
+		if(( kMemCmp( subString, pcCommandBuffer, pcCommandBufferLength ) == 0 ) )	//null臾몄 명대낫湲
 		{
 			cnt++;
 			cmdIndex[i] = 1;
@@ -278,7 +276,7 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 		//int i;
 		for(i = 0; i < iCount; i++)
 		{
-			if(cmdIndex[i] == 1)	//몇번째 명령어인지 확인
+			if(cmdIndex[i] == 1)	//紐踰吏 紐�뱀댁몄 
 			{
 				break;
 			}
@@ -310,7 +308,7 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 
 				pCommand = gs_vstCommandTable[i].pcCommand;
 
-				if(cmdIndex[i] == 1){	//일치하는게 있을때
+				if(cmdIndex[i] == 1){	//쇱寃 
 
 					if(cmpChar == '\0')	{
 						cmpChar	= pCommand[pCommandIndex];
@@ -361,7 +359,7 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 }
 
 /*
- *  커맨드 버퍼에 있는 커맨드를 비교하여 해당 커맨드를 처리하는 함수를 수행
+ *  而ㅻ㎤ 踰쇱  而ㅻ㎤瑜 鍮援 대 而ㅻ㎤瑜 泥由ы ⑥瑜 
  */
 void kExecuteCommand( const char* pcCommandBuffer )
 {
@@ -369,7 +367,7 @@ void kExecuteCommand( const char* pcCommandBuffer )
 	int iCommandBufferLength, iCommandLength;
 	int iCount;
 
-	// 공백으로 구분된 커맨드를 추출
+	// 怨듬갚쇰 援щ 而ㅻ㎤瑜 異異
 	iCommandBufferLength = kStrLen( pcCommandBuffer );
 	for( iSpaceIndex = 0 ; iSpaceIndex < iCommandBufferLength ; iSpaceIndex++ )
 	{
@@ -379,12 +377,12 @@ void kExecuteCommand( const char* pcCommandBuffer )
 		}
 	}
 
-	// 커맨드 테이블을 검사해서 동일한 이름의 커맨드가 있는지 확인
+	// 而ㅻ㎤ 대 寃ы댁 쇳 대 而ㅻ㎤媛 吏 
 	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
 	for( i = 0 ; i < iCount ; i++ )
 	{
 		iCommandLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
-		// 커맨드의 길이와 내용이 완전히 일치하는지 검사
+		// 而ㅻ㎤ 湲몄댁 댁⑹ � 쇱吏 寃
 		if( ( iCommandLength == iSpaceIndex ) &&
 				( kMemCmp( gs_vstCommandTable[ i ].pcCommand, pcCommandBuffer,
 						   iSpaceIndex ) == 0 ) )
@@ -394,7 +392,7 @@ void kExecuteCommand( const char* pcCommandBuffer )
 		}
 	}
 
-	// 리스트에서 찾을 수 없다면 에러 출력
+	// 由ъㅽ몄 李얠  ㅻ㈃  異�
 	if( i >= iCount )
 	{
 		kPrintf( "'%s' is not found.\n", pcCommandBuffer );
@@ -402,7 +400,7 @@ void kExecuteCommand( const char* pcCommandBuffer )
 }
 
 /**
- *  파라미터 자료구조를 초기화
+ *  쇰� 猷援ъ“瑜 珥湲고
  */
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter )
 {
@@ -412,20 +410,20 @@ void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter )
 }
 
 /**
- *  공백으로 구분된 파라미터의 내용과 길이를 반환
+ *  怨듬갚쇰 援щ 쇰�곗 댁⑷낵 湲몄대� 諛
  */
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter )
 {
 	int i;
 	int iLength;
 
-	// 더 이상 파라미터가 없으면 나감
+	//  댁 쇰�곌 쇰㈃ 媛
 	if( pstList->iLength <= pstList->iCurrentPosition )
 	{
 		return 0;
 	}
 
-	// 버퍼의 길이만큼 이동하면서 공백을 검색
+	// 踰쇱 湲몄대 대硫댁 怨듬갚 寃
 	for( i = pstList->iCurrentPosition ; i < pstList->iLength ; i++ )
 	{
 		if( pstList->pcBuffer[ i ] == ' ' )
@@ -434,21 +432,21 @@ int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter )
 		}
 	}
 
-	// 파라미터를 복사하고 길이를 반환
+	// 쇰�곕� 蹂듭ы怨 湲몄대� 諛
 	kMemCpy( pcParameter, pstList->pcBuffer + pstList->iCurrentPosition, i );
 	iLength = i - pstList->iCurrentPosition;
 	pcParameter[ iLength ] = '\0';
 
-	// 파라미터의 위치 업데이트
+	// 쇰�곗 移 곗댄
 	pstList->iCurrentPosition += iLength + 1;
 	return iLength;
 }
 
 //==============================================================================
-//  커맨드를 처리하는 코드
+//  而ㅻ㎤瑜 泥由ы 肄
 //==============================================================================
 /**
- *  셸 도움말을 출력
+ *   留 異�
  */
 void kHelp( const char* pcCommandBuffer )
 {
@@ -464,7 +462,7 @@ void kHelp( const char* pcCommandBuffer )
 
 	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
 
-	// 가장 긴 커맨드의 길이를 계산
+	// 媛 湲 而ㅻ㎤ 湲몄대� 怨
 	for( i = 0 ; i < iCount ; i++ )
 	{
 		iLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
@@ -474,7 +472,7 @@ void kHelp( const char* pcCommandBuffer )
 		}
 	}
 
-	// 도움말 출력
+	// 留 異�
 	for( i = 0 ; i < iCount ; i++ )
 	{
 		kPrintf( "%s", gs_vstCommandTable[ i ].pcCommand );
@@ -485,17 +483,17 @@ void kHelp( const char* pcCommandBuffer )
 }
 
 /**
- *  화면을 지움 
+ *  硫댁 吏 
  */
 void kCls( const char* pcParameterBuffer )
 {
-	// 맨 윗줄은 디버깅 용으로 사용하므로 화면을 지운 후, 라인 1로 커서 이동
+	// 留 以 踰源 ⑹쇰 ъ⑺誘濡 硫댁 吏 , 쇱 1濡 而ㅼ 대
 	kClearScreen();
 	kSetCursor( 0, 1 );
 }
 
 /**
- *  총 메모리 크기를 출력
+ *  珥 硫紐⑤━ ш린瑜 異�
  */
 void kShowTotalRAMSize( const char* pcParameterBuffer )
 {
@@ -503,7 +501,7 @@ void kShowTotalRAMSize( const char* pcParameterBuffer )
 }
 
 /**
- *  문자열로 된 숫자를 숫자로 변환하여 화면에 출력
+ *  臾몄대  レ瑜 レ濡 蹂 硫댁 異�
  */
 void kStringToDecimalHexTest( const char* pcParameterBuffer )
 {
@@ -513,25 +511,25 @@ void kStringToDecimalHexTest( const char* pcParameterBuffer )
 	int iCount = 0;
 	long lValue;
 
-	// 파라미터 초기화
+	// 쇰� 珥湲고
 	kInitializeParameter( &stList, pcParameterBuffer );
 
 	while( 1 )
 	{
-		// 다음 파라미터를 구함, 파라미터의 길이가 0이면 파라미터가 없는 것이므로
-		// 종료
+		// ㅼ 쇰�곕� 援ы, 쇰�곗 湲몄닿 0대㈃ 쇰�곌  寃대濡
+		// 醫猷
 		iLength = kGetNextParameter( &stList, vcParameter );
 		if( iLength == 0 )
 		{
 			break;
 		}
 
-		// 파라미터에 대한 정보를 출력하고 16진수인지 10진수인지 판단하여 변환한 후
-		// 결과를 printf로 출력
+		// 쇰�곗  �蹂대� 異�ν怨 16吏몄 10吏몄 ⑦ 蹂 
+		// 寃곌낵瑜 printf濡 異�
 		kPrintf( "Param %d = '%s', Length = %d, ", iCount + 1, 
 				vcParameter, iLength );
 
-		// 0x로 시작하면 16진수, 그외는 10진수로 판단
+		// 0x濡 硫 16吏, 洹몄몃 10吏濡 
 		if( kMemCmp( vcParameter, "0x", 2 ) == 0 )
 		{
 			lValue = kAToI( vcParameter + 2, 16 );
@@ -548,18 +546,17 @@ void kStringToDecimalHexTest( const char* pcParameterBuffer )
 }
 
 /**
- *  PC를 재시작(Reboot)
+ *  PC瑜 ъ(Reboot)
  */
 void kShutdown( const char* pcParamegerBuffer )
 {
 	kPrintf( "System Shutdown Start...\n" );
 
-	// 키보드 컨트롤러를 통해 PC를 재시작
+	// ㅻ낫 而⑦몃·щ� 듯 PC瑜 ъ
 	kPrintf( "Press Any Key To Reboot PC..." );
 	kGetCh();
 	kReboot();
 }
-
 
 void kPagefault( const char* pcParameterBuffer )
 {
@@ -574,5 +571,4 @@ void kProtectionfault( const char* pcParameterBuffer )
 	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
-
 void kDummy(const char* pcParamegerBuffer){}
