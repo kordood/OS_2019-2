@@ -462,14 +462,14 @@ void kShutdown( const char* pcParamegerBuffer )
 void kPagefault( const char* pcParameterBuffer )
 {
 	DWORD **faultptr;
-	faultptr = 0x1fffff;
+	faultptr = 0x1ff000;
 	DWORD test = *faultptr;
 }
 
 void kProtectionfault( const char* pcParameterBuffer )
 {
 	DWORD **faultptr;
-	faultptr = 0x1fffff;
+	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
 
