@@ -251,8 +251,8 @@ kISRGeneralProtection:
     ; 핸들러에 예외 번호와 에러 코드를 삽입하고 핸들러 호출
     mov rdi, 13
     mov rsi, qword [ rbp + 8 ]
-    call kPagefaultHandler
-    ;call kCommonExceptionHandler
+    ;call kPagefaultHandler
+    call kCommonExceptionHandler
     
     KLOADCONTEXT    ; 콘텍스트를 복원
     add rsp, 8      ; 에러 코드를 스택에서 제거

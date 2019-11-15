@@ -42,6 +42,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
     ecBuffer[ 1 ] = '0' + (qwErrorCode>>32) % 10;
     ecBuffer[ 2 ] = '0' + qwErrorCode / 10;
     ecBuffer[ 3 ] = '0' + qwErrorCode % 10;
+	kPrintf("error code: %s\n", ecBuffer);
 
 	if(!(qwErrorCode & 0x01)){					// is page fault?
 		DWORD entryIndex;
@@ -55,12 +56,12 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
 
 		entryIndex = (CR2 >> 12);
-/*
+
 		if(entryIndex > 511){
     		kPrintStringXY( 32, 4, "Entry index bound error");
 			while(1);
 		}
-		*/
+		
 
 		QWORD pt_index, pd_index, pdpt_index, pml4_index;
 		QWORD *ptr;
@@ -88,7 +89,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		}
 
 		kPrintf("idx: 0x%x\n", pd_index);
-		if(!pd_index){
+		if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
 		if(((*ptr) & 0x01) ^ 0x01){
@@ -159,7 +160,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 			*ptr = (*ptr) ^ 0x02;
 		}
 
-		if(!pd_index){
+		if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
 		if(((*ptr) & 0x02) ^ 0x02){
