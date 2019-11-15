@@ -12,6 +12,8 @@
 #include "PIC.h"
 #include "Console.h"
 #include "ConsoleShell.h"
+#include "Task.h"
+#include "PIT.h"
 
 // 함수 선언
 void kPrintStringMapped( int iX, int iY, const char* pcString );
@@ -34,7 +36,8 @@ void Main( void )
     kPrintStringMapped( 0, 13, "This message is printed through the video memory relocated to 0xAB8000" );
     kSetCursor( 0, iCursorY++ );
 
-	// kRWROTest(); unuse
+    
+    // 부팅 상황을 화면에 출력
     kGetCursor( &iCursorX, &iCursorY );
     kPrintf( "GDT Initialize And Switch For IA-32e Mode...[    ]" );
     kInitializeGDTTableAndTSS();
@@ -58,8 +61,13 @@ void Main( void )
     kSetCursor( 45, iCursorY++ );
     kPrintf( "Pass], Size = %d MB\n", kGetTotalRAMSize() );
     
-    kPrintf( "Keyboard Activate And Queue Initialize......[    ]" );
+    kPrintf( "TCB Pool And Scheduler Initialize...........[Pass]\n" );
+    iCursorY++;
+    kInitializeScheduler();
+    // 1ms당 한번씩 인터럽트가 발생하도록 설정
+    kInitializePIT( MSTOCOUNT( 1 ), 1 );
     
+    kPrintf( "Keyboard Activate And Queue Initialize......[    ]" );
     // 키보드를 활성화
     if( kInitializeKeyboard() == TRUE )
     {
@@ -73,7 +81,7 @@ void Main( void )
         kPrintf( "Fail\n" );
         while( 1 ) ;
     }
-
+    
     kPrintf( "PIC Controller And Interrupt Initialize.....[    ]" );
     // PIC 컨트롤러 초기화 및 모든 인터럽트 활성화
     kInitializePIC();
@@ -82,17 +90,12 @@ void Main( void )
     kSetCursor( 45, iCursorY++ );
     kPrintf( "Pass\n" );
 
-	/*
-	* DWORD** kernel1ff;
-	* kernel1ff = 0x1ff000;
-	* kPrintf( 0, 23, "Write to 0x1ff000 [  ]");
- 	* *kernel1ff = 0xDEADBEEF;
-	* kPrintf( 19, 23, "OK");
-	*/
-    
-    // 셸을 시작
+    // 유휴 태스크를 시스템 스레드로 생성하고 셸을 시작
+    kCreateTask( TASK_FLAGS_LOWEST | TASK_FLAGS_THREAD | TASK_FLAGS_SYSTEM | TASK_FLAGS_IDLE, 0, 0, 
+            ( QWORD ) kIdleTask );
     kStartConsoleShell();
 }
+
 
 void kPrintStringMapped( int iX, int iY, const char* pcString )
 {
@@ -145,4 +148,3 @@ void kRWROTest(){
 
 	return;
 }
-

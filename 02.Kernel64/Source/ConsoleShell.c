@@ -3,7 +3,7 @@
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   콘솔 셸에 관련된 소스 파일
+ *  brief   ÄÜŒÖ ŒÐ¿¡ °ü·ÃµÈ ŒÒœº ÆÄÀÏ
  */
 
 #include "ConsoleShell.h"
@@ -11,15 +11,35 @@
 #include "Keyboard.h"
 #include "Utility.h"
 #include "DoubleLinkedList.h"
+#include "PIT.h"
+#include "RTC.h"
+#include "AssemblyUtility.h"
+#include "Task.h"
+#include "Synchronization.h"
 
-// 커맨드 테이블 정의
+// Ä¿žÇµå Å×ÀÌºí Á€ÀÇ
 SHELLCOMMANDENTRY gs_vstCommandTable[] =
 {
-	{ "help", "Show Help", kHelp },
-	{ "cls", "Clear Screen", kCls },
-	{ "totalram", "Show Total RAM Size", kShowTotalRAMSize },
-	{ "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
-	{ "shutdown", "Shutdown And Reboot OS", kShutdown },
+        { "help", "Show Help", kHelp },
+        { "cls", "Clear Screen", kCls },
+        { "totalram", "Show Total RAM Size", kShowTotalRAMSize },
+        { "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
+        { "shutdown", "Shutdown And Reboot OS", kShutdown },
+        { "settimer", "Set PIT Controller Counter0, ex)settimer 10(ms) 1(periodic)", 
+                kSetTimer },
+        { "wait", "Wait ms Using PIT, ex)wait 100(ms)", kWaitUsingPIT },
+        { "rdtsc", "Read Time Stamp Counter", kReadTimeStampCounter },
+        { "cpuspeed", "Measure Processor Speed", kMeasureProcessorSpeed },
+        { "date", "Show Date And Time", kShowDateAndTime },
+        { "createtask", "Create Task, ex)createtask 1(type) 10(count)", kCreateTestTask },
+        { "changepriority", "Change Task Priority, ex)changepriority 1(ID) 2(Priority)",
+                kChangeTaskPriority },
+        { "tasklist", "Show Task List", kShowTaskList },
+        { "killtask", "End Task, ex)killtask 1(ID) or 0xffffffff(All Task)", kKillTask },
+        { "cpuload", "Show Processor Load", kCPULoad },
+        { "testmutex", "Test Mutex Function", kTestMutex },
+        { "testthread", "Test Thread And Process Function", kTestThread },
+        { "showmatrix", "Show Matrix Screen", kShowMatrix },	
 	{ "strcat", "String Cat(dummy)", kDummy },
 	{ "stra", "String (dummy)", kDummy },
 	{ "strcbat", "String (dummy)", kDummy },
@@ -27,27 +47,27 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
 	{ "strcats", "String (dummy)", kDummy },
 	{ "strcp", "String Copy(dummy)", kDummy },
 	{ "rm", "Remove File(dummy)", kDummy },
-	{ "rmdir", "Remove Directory(dummy)", kDummy },
+//	{ "rmdir", "Remove Directory(dummy)", kDummy },
 	{ "pwd", "Present Working Directory(dummy)", kDummy },
     { "pagefault", "Cause page fault", kPagefault },
     { "protfault", "Cause protection fault", kProtectionfault },
 };                                     
 
 int tabflag = 0;
-//=============================================================================
-//  실제 셸을 구성하는 코드
+//==============================================================================
+//  œÇÁŠ ŒÐÀ» ±žŒºÇÏŽÂ ÄÚµå
 //==============================================================================
 /**
- *  셸의 메인 루프
+ *  ŒÐÀÇ žÞÀÎ ·çÇÁ
  */
 void kStartConsoleShell( void )
 {
-	char vcCommandBuffer[ CONSOLESHELL_MAXCOMMANDBUFFERCOUNT ];
-	int iCommandBufferIndex = 0;
-	BYTE bKey;
-	int iCursorX, iCursorY;
+    char vcCommandBuffer[ CONSOLESHELL_MAXCOMMANDBUFFERCOUNT ];
+    int iCommandBufferIndex = 0;
+    BYTE bKey;
+    int iCursorX, iCursorY;
 
-	// 명령문 10개 저장용 list 생성
+	// ¸í·É¹® 10°³ ÀúÀå¿ë list »ý¼º
 	DoubleLinkedList spdll;
 	DoubleLinkedList* spDLL = CreateLinkedList(&spdll);
 	int iCNT = 0;
@@ -58,57 +78,57 @@ void kStartConsoleShell( void )
 	int DownOn = 0;
 	int UpOn = 0;
 
-	// 프롬프트 출력
-	kPrintf( CONSOLESHELL_PROMPTMESSAGE );
-
-	while( 1 )
-	{
+    // ÇÁ·ÒÇÁÆ® Ãâ·Â
+    kPrintf( CONSOLESHELL_PROMPTMESSAGE );
+    
+    while( 1 )
+    {
 		if(iCommandBufferIndex == 0){
 			DownOn = 0;
 			UPnDOWN = 0;
 		}
-		// 키가 수신될 때까지 대기
-		bKey = kGetCh();
-		// Backspace 키 처리
-		if( bKey == KEY_BACKSPACE )
-		{
+        // Å°°¡ ŒöœÅµÉ ¶§±îÁö Žë±â
+        bKey = kGetCh();
+        // Backspace Å° Ã³ž®
+        if( bKey == KEY_BACKSPACE )
+        {
 			tabflag = 0;
-			if( iCommandBufferIndex > 0 )
-			{
-				// 현재 커서 위치를 얻어서 한 문자 앞으로 이동한 다음 공백을 출력하고 
-				// 커맨드 버퍼에서 마지막 문자 삭제
-				kGetCursor( &iCursorX, &iCursorY );
-				kPrintStringXY( iCursorX - 1, iCursorY, " " );
-				kSetCursor( iCursorX - 1, iCursorY );
+            if( iCommandBufferIndex > 0 )
+            {
+                // ÇöÀç Ä¿Œ­ À§Ä¡žŠ ŸòŸîŒ­ ÇÑ ¹®ÀÚ ŸÕÀž·Î ÀÌµ¿ÇÑ ŽÙÀœ °ø¹éÀ» Ãâ·ÂÇÏ°í 
+                // Ä¿žÇµå ¹öÆÛ¿¡Œ­ ž¶Áöž· ¹®ÀÚ »èÁŠ
+                kGetCursor( &iCursorX, &iCursorY );
+                kPrintStringXY( iCursorX - 1, iCursorY, " " );
+                kSetCursor( iCursorX - 1, iCursorY );
 				vcCommandBuffer[ --iCommandBufferIndex ] = '\0';
-				
+
 				if(iCommandBufferIndex == 0){
 					UPnDOWN = 0;
 					DownOn = 0;
 					UpOn = 0;
 					spDLL->m_spIterator = spDLL->m_spTail;		
 				}
-			}
-		}
-		// 엔터 키 처리
-		else if( bKey == KEY_ENTER )
-		{
+            }
+        }
+        // ¿£ÅÍ Å° Ã³ž®
+        else if( bKey == KEY_ENTER )
+        {
 			tabflag = 0;
 			kPrintf( "\n" );
 			DownOn = 0;
 			UPnDOWN = 0;
 			UpOn = 0;
-
-			if( iCommandBufferIndex > 0 )
-			{
+            
+            if( iCommandBufferIndex > 0 )
+            {
 				kMemCpy(&data[iCNT%10], vcCommandBuffer, iCommandBufferIndex+1);
-				// 커맨드 버퍼에 있는 명령을 실행
-				vcCommandBuffer[ iCommandBufferIndex ] = '\0';
-				kExecuteCommand( vcCommandBuffer );
-			}
-
+                // Ä¿žÇµå ¹öÆÛ¿¡ ÀÖŽÂ ží·ÉÀ» œÇÇà
+                vcCommandBuffer[ iCommandBufferIndex ] = '\0';
+                kExecuteCommand( vcCommandBuffer );
+            }
+            
 			if(iCommandBufferIndex > 0){
-				//명령문을 DoubleLinkedList에 삽입
+				//¸í·É¹®À» DoubleLinkedList¿¡ »ðÀÔ
 				if(iCNT >= 10){
 					DownOn = 0;
 					Pop_Front(spDLL);
@@ -122,16 +142,18 @@ void kStartConsoleShell( void )
 				++iCNT;
 			}
 
-			// 프롬프트 출력 및 커맨드 버퍼 초기화
-			kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE );            
-			kMemSet( vcCommandBuffer, '\0', CONSOLESHELL_MAXCOMMANDBUFFERCOUNT );
-			iCommandBufferIndex = 0;
-		}
-		// 시프트 키, CAPS Lock, NUM Lock, Scroll Lock은 무시
-		else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) || ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) || ( bKey == KEY_SCROLLLOCK ) )
-		{
+            // ÇÁ·ÒÇÁÆ® Ãâ·Â ¹× Ä¿žÇµå ¹öÆÛ ÃÊ±âÈ­
+            kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE );            
+            kMemSet( vcCommandBuffer, '\0', CONSOLESHELL_MAXCOMMANDBUFFERCOUNT );
+            iCommandBufferIndex = 0;
+        }
+        // œÃÇÁÆ® Å°, CAPS Lock, NUM Lock, Scroll LockÀº ¹«œÃ
+        else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) ||
+                 ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) ||
+                 ( bKey == KEY_SCROLLLOCK ) )
+        {
 			tabflag = 0;
-		}
+        }
 		else if((bKey == KEY_UP) || (bKey == KEY_DOWN)){
 			if(bKey == KEY_UP){
 				if(UPnDOWN > 0) DownOn = 1;
@@ -219,18 +241,6 @@ void kStartConsoleShell( void )
 	}
 }
 
-/*char* kSubstr( const char * str, int size)
-  {
-  char sub[100];
-  int i;
-  for(i = 0;i<size;i++){
-  sub[i] = str[i];
-  }
-//sub[i] = "\0";
-
-return sub;
-
-}*/
 
 void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 {
@@ -366,206 +376,832 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 }
 
 /*
- *  커맨드 버퍼에 있는 커맨드를 비교하여 해당 커맨드를 처리하는 함수를 수행
+ *  Ä¿žÇµå ¹öÆÛ¿¡ ÀÖŽÂ Ä¿žÇµåžŠ ºñ±³ÇÏ¿© ÇØŽç Ä¿žÇµåžŠ Ã³ž®ÇÏŽÂ ÇÔŒöžŠ ŒöÇà
  */
 void kExecuteCommand( const char* pcCommandBuffer )
 {
-	int i, iSpaceIndex;
-	int iCommandBufferLength, iCommandLength;
-	int iCount;
+    int i, iSpaceIndex;
+    int iCommandBufferLength, iCommandLength;
+    int iCount;
+    
+    // °ø¹éÀž·Î ±žºÐµÈ Ä¿žÇµåžŠ ÃßÃâ
+    iCommandBufferLength = kStrLen( pcCommandBuffer );
+    for( iSpaceIndex = 0 ; iSpaceIndex < iCommandBufferLength ; iSpaceIndex++ )
+    {
+        if( pcCommandBuffer[ iSpaceIndex ] == ' ' )
+        {
+            break;
+        }
+    }
+    
+    // Ä¿žÇµå Å×ÀÌºíÀ» °Ë»çÇØŒ­ µ¿ÀÏÇÑ ÀÌž§ÀÇ Ä¿žÇµå°¡ ÀÖŽÂÁö È®ÀÎ
+    iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+    for( i = 0 ; i < iCount ; i++ )
+    {
+        iCommandLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
+        // Ä¿žÇµåÀÇ ±æÀÌ¿Í ³»¿ëÀÌ ¿ÏÀüÈ÷ ÀÏÄ¡ÇÏŽÂÁö °Ë»ç
+        if( ( iCommandLength == iSpaceIndex ) &&
+            ( kMemCmp( gs_vstCommandTable[ i ].pcCommand, pcCommandBuffer,
+                       iSpaceIndex ) == 0 ) )
+        {
+            gs_vstCommandTable[ i ].pfFunction( pcCommandBuffer + iSpaceIndex + 1 );
+            break;
+        }
+    }
 
-	// 공백으로 구분된 커맨드를 추출
-	iCommandBufferLength = kStrLen( pcCommandBuffer );
-	for( iSpaceIndex = 0 ; iSpaceIndex < iCommandBufferLength ; iSpaceIndex++ )
-	{
-		if( pcCommandBuffer[ iSpaceIndex ] == ' ' )
-		{
-			break;
-		}
-	}
-
-	// 커맨드 테이블을 검사해서 동일한 이름의 커맨드가 있는지 확인
-	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
-	for( i = 0 ; i < iCount ; i++ )
-	{
-		iCommandLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
-		// 커맨드의 길이와 내용이 완전히 일치하는지 검사
-		if( ( iCommandLength == iSpaceIndex ) &&
-				( kMemCmp( gs_vstCommandTable[ i ].pcCommand, pcCommandBuffer,
-						   iSpaceIndex ) == 0 ) )
-		{
-			gs_vstCommandTable[ i ].pfFunction( pcCommandBuffer + iSpaceIndex + 1 );
-			break;
-		}
-	}
-
-	// 리스트에서 찾을 수 없다면 에러 출력
-	if( i >= iCount )
-	{
-		kPrintf( "'%s' is not found.\n", pcCommandBuffer );
-	}
+    // ž®œºÆ®¿¡Œ­ Ã£À» Œö ŸøŽÙžé ¿¡·¯ Ãâ·Â
+    if( i >= iCount )
+    {
+        kPrintf( "'%s' is not found.\n", pcCommandBuffer );
+    }
 }
 
 /**
- *  파라미터 자료구조를 초기화
+ *  ÆÄ¶ó¹ÌÅÍ ÀÚ·á±žÁ¶žŠ ÃÊ±âÈ­
  */
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter )
 {
-	pstList->pcBuffer = pcParameter;
-	pstList->iLength = kStrLen( pcParameter );
-	pstList->iCurrentPosition = 0;
+    pstList->pcBuffer = pcParameter;
+    pstList->iLength = kStrLen( pcParameter );
+    pstList->iCurrentPosition = 0;
 }
 
 /**
- *  공백으로 구분된 파라미터의 내용과 길이를 반환
+ *  °ø¹éÀž·Î ±žºÐµÈ ÆÄ¶ó¹ÌÅÍÀÇ ³»¿ë°ú ±æÀÌžŠ ¹ÝÈ¯
  */
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter )
 {
-	int i;
-	int iLength;
+    int i;
+    int iLength;
 
-	// 더 이상 파라미터가 없으면 나감
-	if( pstList->iLength <= pstList->iCurrentPosition )
-	{
-		return 0;
-	}
+    // Žõ ÀÌ»ó ÆÄ¶ó¹ÌÅÍ°¡ ŸøÀžžé ³ª°š
+    if( pstList->iLength <= pstList->iCurrentPosition )
+    {
+        return 0;
+    }
+    
+    // ¹öÆÛÀÇ ±æÀÌžžÅ­ ÀÌµ¿ÇÏžéŒ­ °ø¹éÀ» °Ë»ö
+    for( i = pstList->iCurrentPosition ; i < pstList->iLength ; i++ )
+    {
+        if( pstList->pcBuffer[ i ] == ' ' )
+        {
+            break;
+        }
+    }
+    
+    // ÆÄ¶ó¹ÌÅÍžŠ º¹»çÇÏ°í ±æÀÌžŠ ¹ÝÈ¯
+    kMemCpy( pcParameter, pstList->pcBuffer + pstList->iCurrentPosition, i );
+    iLength = i - pstList->iCurrentPosition;
+    pcParameter[ iLength ] = '\0';
 
-	// 버퍼의 길이만큼 이동하면서 공백을 검색
-	for( i = pstList->iCurrentPosition ; i < pstList->iLength ; i++ )
-	{
-		if( pstList->pcBuffer[ i ] == ' ' )
-		{
-			break;
-		}
-	}
-
-	// 파라미터를 복사하고 길이를 반환
-	kMemCpy( pcParameter, pstList->pcBuffer + pstList->iCurrentPosition, i );
-	iLength = i - pstList->iCurrentPosition;
-	pcParameter[ iLength ] = '\0';
-
-	// 파라미터의 위치 업데이트
-	pstList->iCurrentPosition += iLength + 1;
-	return iLength;
+    // ÆÄ¶ó¹ÌÅÍÀÇ À§Ä¡ Ÿ÷µ¥ÀÌÆ®
+    pstList->iCurrentPosition += iLength + 1;
+    return iLength;
 }
-
+    
 //==============================================================================
-//  커맨드를 처리하는 코드
+//  Ä¿žÇµåžŠ Ã³ž®ÇÏŽÂ ÄÚµå
 //==============================================================================
 /**
- *  셸 도움말을 출력
+ *  ŒÐ µµ¿òž»À» Ãâ·Â
  */
-void kHelp( const char* pcCommandBuffer )
+static void kHelp( const char* pcCommandBuffer )
 {
-	int i;
-	int iCount;
-	int iCursorX, iCursorY;
-	int iLength, iMaxCommandLength = 0;
+    int i;
+    int iCount;
+    int iCursorX, iCursorY;
+    int iLength, iMaxCommandLength = 0;
+    
+    
+    kPrintf( "=========================================================\n" );
+    kPrintf( "                    MINT64 Shell Help                    \n" );
+    kPrintf( "=========================================================\n" );
+    
+    iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
 
-
-	kPrintf( "=========================================================\n" );
-	kPrintf( "                    MINT64 Shell Help                    \n" );
-	kPrintf( "=========================================================\n" );
-
-	iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
-
-	// 가장 긴 커맨드의 길이를 계산
-	for( i = 0 ; i < iCount ; i++ )
-	{
-		iLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
-		if( iLength > iMaxCommandLength )
-		{
-			iMaxCommandLength = iLength;
-		}
-	}
-
-	// 도움말 출력
-	for( i = 0 ; i < iCount ; i++ )
-	{
-		kPrintf( "%s", gs_vstCommandTable[ i ].pcCommand );
-		kGetCursor( &iCursorX, &iCursorY );
-		kSetCursor( iMaxCommandLength, iCursorY );
-		kPrintf( "  - %s\n", gs_vstCommandTable[ i ].pcHelp );
-	}
+    // °¡Àå ±ä Ä¿žÇµåÀÇ ±æÀÌžŠ °è»ê
+    for( i = 0 ; i < iCount ; i++ )
+    {
+        iLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
+        if( iLength > iMaxCommandLength )
+        {
+            iMaxCommandLength = iLength;
+        }
+    }
+    
+    // µµ¿òž» Ãâ·Â
+    for( i = 0 ; i < iCount ; i++ )
+    {
+        kPrintf( "%s", gs_vstCommandTable[ i ].pcCommand );
+        kGetCursor( &iCursorX, &iCursorY );
+        kSetCursor( iMaxCommandLength, iCursorY );
+        kPrintf( "  - %s\n", gs_vstCommandTable[ i ].pcHelp );
+    }
 }
 
 /**
- *  화면을 지움 
+ *  È­žéÀ» Áö¿ò 
  */
-void kCls( const char* pcParameterBuffer )
+static void kCls( const char* pcParameterBuffer )
 {
-	// 맨 윗줄은 디버깅 용으로 사용하므로 화면을 지운 후, 라인 1로 커서 이동
-	kClearScreen();
-	kSetCursor( 0, 1 );
+    // žÇ À­ÁÙÀº µð¹ö±ë ¿ëÀž·Î »ç¿ëÇÏ¹Ç·Î È­žéÀ» Áö¿î ÈÄ, ¶óÀÎ 1·Î Ä¿Œ­ ÀÌµ¿
+    kClearScreen();
+    kSetCursor( 0, 1 );
 }
 
 /**
- *  총 메모리 크기를 출력
+ *  ÃÑ žÞžðž® Å©±âžŠ Ãâ·Â
  */
-void kShowTotalRAMSize( const char* pcParameterBuffer )
+static void kShowTotalRAMSize( const char* pcParameterBuffer )
 {
-	kPrintf( "Total RAM Size = %d MB\n", kGetTotalRAMSize() );
+    kPrintf( "Total RAM Size = %d MB\n", kGetTotalRAMSize() );
 }
 
 /**
- *  문자열로 된 숫자를 숫자로 변환하여 화면에 출력
+ *  ¹®ÀÚ¿­·Î µÈ ŒýÀÚžŠ ŒýÀÚ·Î º¯È¯ÇÏ¿© È­žé¿¡ Ãâ·Â
  */
-void kStringToDecimalHexTest( const char* pcParameterBuffer )
+static void kStringToDecimalHexTest( const char* pcParameterBuffer )
 {
-	char vcParameter[ 100 ];
-	int iLength;
-	PARAMETERLIST stList;
-	int iCount = 0;
-	long lValue;
+    char vcParameter[ 100 ];
+    int iLength;
+    PARAMETERLIST stList;
+    int iCount = 0;
+    long lValue;
+    
+    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+    kInitializeParameter( &stList, pcParameterBuffer );
+    
+    while( 1 )
+    {
+        // ŽÙÀœ ÆÄ¶ó¹ÌÅÍžŠ ±žÇÔ, ÆÄ¶ó¹ÌÅÍÀÇ ±æÀÌ°¡ 0ÀÌžé ÆÄ¶ó¹ÌÅÍ°¡ ŸøŽÂ °ÍÀÌ¹Ç·Î
+        // ÁŸ·á
+        iLength = kGetNextParameter( &stList, vcParameter );
+        if( iLength == 0 )
+        {
+            break;
+        }
 
-	// 파라미터 초기화
-	kInitializeParameter( &stList, pcParameterBuffer );
+        // ÆÄ¶ó¹ÌÅÍ¿¡ ŽëÇÑ Á€ºžžŠ Ãâ·ÂÇÏ°í 16ÁøŒöÀÎÁö 10ÁøŒöÀÎÁö ÆÇŽÜÇÏ¿© º¯È¯ÇÑ ÈÄ
+        // °á°úžŠ printf·Î Ãâ·Â
+        kPrintf( "Param %d = '%s', Length = %d, ", iCount + 1, 
+                 vcParameter, iLength );
 
-	while( 1 )
-	{
-		// 다음 파라미터를 구함, 파라미터의 길이가 0이면 파라미터가 없는 것이므로
-		// 종료
-		iLength = kGetNextParameter( &stList, vcParameter );
-		if( iLength == 0 )
-		{
-			break;
-		}
-
-		// 파라미터에 대한 정보를 출력하고 16진수인지 10진수인지 판단하여 변환한 후
-		// 결과를 printf로 출력
-		kPrintf( "Param %d = '%s', Length = %d, ", iCount + 1, 
-				vcParameter, iLength );
-
-		// 0x로 시작하면 16진수, 그외는 10진수로 판단
-		if( kMemCmp( vcParameter, "0x", 2 ) == 0 )
-		{
-			lValue = kAToI( vcParameter + 2, 16 );
-			kPrintf( "HEX Value = %q\n", lValue );
-		}
-		else
-		{
-			lValue = kAToI( vcParameter, 10 );
-			kPrintf( "Decimal Value = %d\n", lValue );
-		}
-
-		iCount++;
-	}
+        // 0x·Î œÃÀÛÇÏžé 16ÁøŒö, ±×¿ÜŽÂ 10ÁøŒö·Î ÆÇŽÜ
+        if( kMemCmp( vcParameter, "0x", 2 ) == 0 )
+        {
+            lValue = kAToI( vcParameter + 2, 16 );
+            kPrintf( "HEX Value = %q\n", lValue );
+        }
+        else
+        {
+            lValue = kAToI( vcParameter, 10 );
+            kPrintf( "Decimal Value = %d\n", lValue );
+        }
+        
+        iCount++;
+    }
 }
 
 /**
- *  PC를 재시작(Reboot)
+ *  PCžŠ ÀçœÃÀÛ(Reboot)
  */
-void kShutdown( const char* pcParamegerBuffer )
+static void kShutdown( const char* pcParamegerBuffer )
 {
-	kPrintf( "System Shutdown Start...\n" );
-
-	// 키보드 컨트롤러를 통해 PC를 재시작
-	kPrintf( "Press Any Key To Reboot PC..." );
-	kGetCh();
-	kReboot();
+    kPrintf( "System Shutdown Start...\n" );
+    
+    // Å°ºžµå ÄÁÆ®·Ñ·¯žŠ ÅëÇØ PCžŠ ÀçœÃÀÛ
+    kPrintf( "Press Any Key To Reboot PC..." );
+    kGetCh();
+    kReboot();
 }
 
+/**
+ *  PIT ÄÁÆ®·Ñ·¯ÀÇ Ä«¿îÅÍ 0 Œ³Á€
+ */
+static void kSetTimer( const char* pcParameterBuffer )
+{
+    char vcParameter[ 100 ];
+    PARAMETERLIST stList;
+    long lValue;
+    BOOL bPeriodic;
 
+    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+    kInitializeParameter( &stList, pcParameterBuffer );
+    
+    // milisecond ÃßÃâ
+    if( kGetNextParameter( &stList, vcParameter ) == 0 )
+    {
+        kPrintf( "ex)settimer 10(ms) 1(periodic)\n" );
+        return ;
+    }
+    lValue = kAToI( vcParameter, 10 );
+
+    // Periodic ÃßÃâ
+    if( kGetNextParameter( &stList, vcParameter ) == 0 )
+    {
+        kPrintf( "ex)settimer 10(ms) 1(periodic)\n" );
+        return ;
+    }    
+    bPeriodic = kAToI( vcParameter, 10 );
+    
+    kInitializePIT( MSTOCOUNT( lValue ), bPeriodic );
+    kPrintf( "Time = %d ms, Periodic = %d Change Complete\n", lValue, bPeriodic );
+}
+
+/**
+ *  PIT ÄÁÆ®·Ñ·¯žŠ Á÷Á¢ »ç¿ëÇÏ¿© ms µ¿ŸÈ Žë±â  
+ */
+static void kWaitUsingPIT( const char* pcParameterBuffer )
+{
+    char vcParameter[ 100 ];
+    int iLength;
+    PARAMETERLIST stList;
+    long lMillisecond;
+    int i;
+    
+    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+    kInitializeParameter( &stList, pcParameterBuffer );
+    if( kGetNextParameter( &stList, vcParameter ) == 0 )
+    {
+        kPrintf( "ex)wait 100(ms)\n" );
+        return ;
+    }
+    
+    lMillisecond = kAToI( pcParameterBuffer, 10 );
+    kPrintf( "%d ms Sleep Start...\n", lMillisecond );
+    
+    // ÀÎÅÍ·ŽÆ®žŠ ºñÈ°ŒºÈ­ÇÏ°í PIT ÄÁÆ®·Ñ·¯žŠ ÅëÇØ Á÷Á¢ œÃ°£À» ÃøÁ€
+    kDisableInterrupt();
+    for( i = 0 ; i < lMillisecond / 30 ; i++ )
+    {
+        kWaitUsingDirectPIT( MSTOCOUNT( 30 ) );
+    }
+    kWaitUsingDirectPIT( MSTOCOUNT( lMillisecond % 30 ) );   
+    kEnableInterrupt();
+    kPrintf( "%d ms Sleep Complete\n", lMillisecond );
+    
+    // ÅžÀÌžÓ º¹¿ø
+    kInitializePIT( MSTOCOUNT( 1 ), TRUE );
+}
+
+/**
+ *  ÅžÀÓ œºÅÆÇÁ Ä«¿îÅÍžŠ ÀÐÀœ  
+ */
+static void kReadTimeStampCounter( const char* pcParameterBuffer )
+{
+    QWORD qwTSC;
+    
+    qwTSC = kReadTSC();
+    kPrintf( "Time Stamp Counter = %q\n", qwTSC );
+}
+
+/**
+ *  ÇÁ·ÎŒŒŒ­ÀÇ ŒÓµµžŠ ÃøÁ€
+ */
+static void kMeasureProcessorSpeed( const char* pcParameterBuffer )
+{
+    int i;
+    QWORD qwLastTSC, qwTotalTSC = 0;
+        
+    kPrintf( "Now Measuring." );
+    
+    // 10ÃÊ µ¿ŸÈ º¯È­ÇÑ ÅžÀÓ œºÅÆÇÁ Ä«¿îÅÍžŠ ÀÌ¿ëÇÏ¿© ÇÁ·ÎŒŒŒ­ÀÇ ŒÓµµžŠ °£Á¢ÀûÀž·Î ÃøÁ€
+    kDisableInterrupt();    
+    for( i = 0 ; i < 200 ; i++ )
+    {
+        qwLastTSC = kReadTSC();
+        kWaitUsingDirectPIT( MSTOCOUNT( 50 ) );
+        qwTotalTSC += kReadTSC() - qwLastTSC;
+
+        kPrintf( "." );
+    }
+    // ÅžÀÌžÓ º¹¿ø
+    kInitializePIT( MSTOCOUNT( 1 ), TRUE );    
+    kEnableInterrupt();
+    
+    kPrintf( "\nCPU Speed = %d MHz\n", qwTotalTSC / 10 / 1000 / 1000 );
+}
+
+/**
+ *  RTC ÄÁÆ®·Ñ·¯¿¡ ÀúÀåµÈ ÀÏÀÚ ¹× œÃ°£ Á€ºžžŠ Ç¥œÃ
+ */
+static void kShowDateAndTime( const char* pcParameterBuffer )
+{
+    BYTE bSecond, bMinute, bHour;
+    BYTE bDayOfWeek, bDayOfMonth, bMonth;
+    WORD wYear;
+
+    // RTC ÄÁÆ®·Ñ·¯¿¡Œ­ œÃ°£ ¹× ÀÏÀÚžŠ ÀÐÀœ
+    kReadRTCTime( &bHour, &bMinute, &bSecond );
+    kReadRTCDate( &wYear, &bMonth, &bDayOfMonth, &bDayOfWeek );
+    
+    kPrintf( "Date: %d/%d/%d %s, ", wYear, bMonth, bDayOfMonth,
+             kConvertDayOfWeekToString( bDayOfWeek ) );
+    kPrintf( "Time: %d:%d:%d\n", bHour, bMinute, bSecond );
+}
+
+/**
+ *  ÅÂœºÅ© 1
+ *      È­žé Å×µÎž®žŠ µ¹žéŒ­ ¹®ÀÚžŠ Ãâ·Â
+ */
+static void kTestTask1( void )
+{
+    BYTE bData;
+    int i = 0, iX = 0, iY = 0, iMargin, j;
+    CHARACTER* pstScreen = ( CHARACTER* ) CONSOLE_VIDEOMEMORYADDRESS;
+    TCB* pstRunningTask;
+    
+    // ÀÚœÅÀÇ IDžŠ ŸòŸîŒ­ È­žé ¿ÀÇÁŒÂÀž·Î »ç¿ë
+    pstRunningTask = kGetRunningTask();
+    iMargin = ( pstRunningTask->stLink.qwID & 0xFFFFFFFF ) % 10;
+    
+    // È­žé ³× ±ÍÅüÀÌžŠ µ¹žéŒ­ ¹®ÀÚ Ãâ·Â
+    for( j = 0 ; j < 20000 ; j++ )
+    {
+        switch( i )
+        {
+        case 0:
+            iX++;
+            if( iX >= ( CONSOLE_WIDTH - iMargin ) )
+            {
+                i = 1;
+            }
+            break;
+            
+        case 1:
+            iY++;
+            if( iY >= ( CONSOLE_HEIGHT - iMargin ) )
+            {
+                i = 2;
+            }
+            break;
+            
+        case 2:
+            iX--;
+            if( iX < iMargin )
+            {
+                i = 3;
+            }
+            break;
+            
+        case 3:
+            iY--;
+            if( iY < iMargin )
+            {
+                i = 0;
+            }
+            break;
+        }
+        
+        // ¹®ÀÚ ¹× »ö±ò ÁöÁ€
+        pstScreen[ iY * CONSOLE_WIDTH + iX ].bCharactor = bData;
+        pstScreen[ iY * CONSOLE_WIDTH + iX ].bAttribute = bData & 0x0F;
+        bData++;
+        
+        // ŽÙž¥ ÅÂœºÅ©·Î ÀüÈ¯
+        //kSchedule();
+    }
+
+    //kExitTask();
+}
+
+/**
+ *  ÅÂœºÅ© 2
+ *      ÀÚœÅÀÇ IDžŠ Âü°íÇÏ¿© Æ¯Á€ À§Ä¡¿¡ ÈžÀüÇÏŽÂ ¹Ù¶÷°³ºñžŠ Ãâ·Â
+ */
+static void kTestTask2( void )
+{
+    int i = 0, iOffset;
+    CHARACTER* pstScreen = ( CHARACTER* ) CONSOLE_VIDEOMEMORYADDRESS;
+    TCB* pstRunningTask;
+    char vcData[ 4 ] = { '-', '\\', '|', '/' };
+    
+    // ÀÚœÅÀÇ IDžŠ ŸòŸîŒ­ È­žé ¿ÀÇÁŒÂÀž·Î »ç¿ë
+    pstRunningTask = kGetRunningTask();
+    iOffset = ( pstRunningTask->stLink.qwID & 0xFFFFFFFF ) * 2;
+    iOffset = CONSOLE_WIDTH * CONSOLE_HEIGHT - 
+        ( iOffset % ( CONSOLE_WIDTH * CONSOLE_HEIGHT ) );
+
+    while( 1 )
+    {
+        // ÈžÀüÇÏŽÂ ¹Ù¶÷°³ºñžŠ Ç¥œÃ
+        pstScreen[ iOffset ].bCharactor = vcData[ i % 4 ];
+        // »ö±ò ÁöÁ€
+        pstScreen[ iOffset ].bAttribute = ( iOffset % 15 ) + 1;
+        i++;
+        
+        // ŽÙž¥ ÅÂœºÅ©·Î ÀüÈ¯
+        //kSchedule();
+    }
+}
+
+/**
+ *  ÅÂœºÅ©žŠ »ýŒºÇØŒ­ žÖÆŒ ÅÂœºÅ· ŒöÇà
+ */
+static void kCreateTestTask( const char* pcParameterBuffer )
+{
+    PARAMETERLIST stList;
+    char vcType[ 30 ];
+    char vcCount[ 30 ];
+    int i;
+    
+    // ÆÄ¶ó¹ÌÅÍžŠ ÃßÃâ
+    kInitializeParameter( &stList, pcParameterBuffer );
+    kGetNextParameter( &stList, vcType );
+    kGetNextParameter( &stList, vcCount );
+
+    switch( kAToI( vcType, 10 ) )
+    {
+    // ÅžÀÔ 1 ÅÂœºÅ© »ýŒº
+    case 1:
+        for( i = 0 ; i < kAToI( vcCount, 10 ) ; i++ )
+        {    
+            if( kCreateTask( TASK_FLAGS_LOW | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask1 ) == NULL )
+            {
+                break;
+            }
+        }
+        
+        kPrintf( "Task1 %d Created\n", i );
+        break;
+        
+    // ÅžÀÔ 2 ÅÂœºÅ© »ýŒº
+    case 2:
+    default:
+        for( i = 0 ; i < kAToI( vcCount, 10 ) ; i++ )
+        {    
+            if( kCreateTask( TASK_FLAGS_LOW | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 ) == NULL )
+            {
+                break;
+            }
+        }
+        kPrintf( "Task2 %d Created\n", i );
+        break;
+    }    
+}   
+
+/**
+ *  ÅÂœºÅ©ÀÇ ¿ìŒ± ŒøÀ§žŠ º¯°æ
+ */
+static void kChangeTaskPriority( const char* pcParameterBuffer )
+{
+    PARAMETERLIST stList;
+    char vcID[ 30 ];
+    char vcPriority[ 30 ];
+    QWORD qwID;
+    BYTE bPriority;
+    
+    // ÆÄ¶ó¹ÌÅÍžŠ ÃßÃâ
+    kInitializeParameter( &stList, pcParameterBuffer );
+    kGetNextParameter( &stList, vcID );
+    kGetNextParameter( &stList, vcPriority );
+    
+    // ÅÂœºÅ©ÀÇ ¿ìŒ± ŒøÀ§žŠ º¯°æ
+    if( kMemCmp( vcID, "0x", 2 ) == 0 )
+    {
+        qwID = kAToI( vcID + 2, 16 );
+    }
+    else
+    {
+        qwID = kAToI( vcID, 10 );
+    }
+    
+    bPriority = kAToI( vcPriority, 10 );
+    
+    kPrintf( "Change Task Priority ID [0x%q] Priority[%d] ", qwID, bPriority );
+    if( kChangePriority( qwID, bPriority ) == TRUE )
+    {
+        kPrintf( "Success\n" );
+    }
+    else
+    {
+        kPrintf( "Fail\n" );
+    }
+}
+
+/**
+ *  ÇöÀç »ýŒºµÈ žðµç ÅÂœºÅ©ÀÇ Á€ºžžŠ Ãâ·Â
+ */
+static void kShowTaskList( const char* pcParameterBuffer )
+{
+    int i;
+    TCB* pstTCB;
+    int iCount = 0;
+    
+    kPrintf( "=========== Task Total Count [%d] ===========\n", kGetTaskCount() );
+    for( i = 0 ; i < TASK_MAXCOUNT ; i++ )
+    {
+        // TCBžŠ ±žÇØŒ­ TCB°¡ »ç¿ë ÁßÀÌžé IDžŠ Ãâ·Â
+        pstTCB = kGetTCBInTCBPool( i );
+        if( ( pstTCB->stLink.qwID >> 32 ) != 0 )
+        {
+            // ÅÂœºÅ©°¡ 10°³ Ãâ·ÂµÉ ¶§ž¶ŽÙ, °èŒÓ ÅÂœºÅ© Á€ºžžŠ Ç¥œÃÇÒÁö ¿©ºÎžŠ È®ÀÎ
+            if( ( iCount != 0 ) && ( ( iCount % 10 ) == 0 ) )
+            {
+                kPrintf( "Press any key to continue... ('q' is exit) : " );
+                if( kGetCh() == 'q' )
+                {
+                    kPrintf( "\n" );
+                    break;
+                }
+                kPrintf( "\n" );
+            }
+            
+            kPrintf( "[%d] Task ID[0x%Q], Priority[%d], Flags[0x%Q], Thread[%d]\n", 1 + iCount++,
+                     pstTCB->stLink.qwID, GETPRIORITY( pstTCB->qwFlags ), 
+                     pstTCB->qwFlags, kGetListCount( &( pstTCB->stChildThreadList ) ) );
+            kPrintf( "    Parent PID[0x%Q], Memory Address[0x%Q], Size[0x%Q]\n",
+                    pstTCB->qwParentProcessID, pstTCB->pvMemoryAddress, pstTCB->qwMemorySize );
+        }
+    }
+}
+
+/**
+ *  ÅÂœºÅ©žŠ ÁŸ·á
+ */
+static void kKillTask( const char* pcParameterBuffer )
+{
+    PARAMETERLIST stList;
+    char vcID[ 30 ];
+    QWORD qwID;
+    TCB* pstTCB;
+    int i;
+    
+    // ÆÄ¶ó¹ÌÅÍžŠ ÃßÃâ
+    kInitializeParameter( &stList, pcParameterBuffer );
+    kGetNextParameter( &stList, vcID );
+    
+    // ÅÂœºÅ©žŠ ÁŸ·á
+    if( kMemCmp( vcID, "0x", 2 ) == 0 )
+    {
+        qwID = kAToI( vcID + 2, 16 );
+    }
+    else
+    {
+        qwID = kAToI( vcID, 10 );
+    }
+    
+    // Æ¯Á€ IDžž ÁŸ·áÇÏŽÂ °æ¿ì
+    if( qwID != 0xFFFFFFFF )
+    {
+        pstTCB = kGetTCBInTCBPool( GETTCBOFFSET( qwID ) );
+        qwID = pstTCB->stLink.qwID;
+
+        // œÃœºÅÛ Å×œºÆ®ŽÂ ÁŠ¿Ü
+        if( ( ( qwID >> 32 ) != 0 ) && ( ( pstTCB->qwFlags & TASK_FLAGS_SYSTEM ) == 0x00 ) )
+        {
+            kPrintf( "Kill Task ID [0x%q] ", qwID );
+            if( kEndTask( qwID ) == TRUE )
+            {
+                kPrintf( "Success\n" );
+            }
+            else
+            {
+                kPrintf( "Fail\n" );
+            }
+        }
+        else
+        {
+            kPrintf( "Task does not exist or task is system task\n" );
+        }
+    }
+    // ÄÜŒÖ ŒÐ°ú À¯ÈÞ ÅÂœºÅ©žŠ ÁŠ¿ÜÇÏ°í žðµç ÅÂœºÅ© ÁŸ·á
+    else
+    {
+        for( i = 0 ; i < TASK_MAXCOUNT ; i++ )
+        {
+            pstTCB = kGetTCBInTCBPool( i );
+            qwID = pstTCB->stLink.qwID;
+
+            // œÃœºÅÛ Å×œºÆ®ŽÂ »èÁŠ žñ·Ï¿¡Œ­ ÁŠ¿Ü
+            if( ( ( qwID >> 32 ) != 0 ) && ( ( pstTCB->qwFlags & TASK_FLAGS_SYSTEM ) == 0x00 ) )
+            {
+                kPrintf( "Kill Task ID [0x%q] ", qwID );
+                if( kEndTask( qwID ) == TRUE )
+                {
+                    kPrintf( "Success\n" );
+                }
+                else
+                {
+                    kPrintf( "Fail\n" );
+                }
+            }
+        }
+    }
+}
+
+/**
+ *  ÇÁ·ÎŒŒŒ­ÀÇ »ç¿ë·üÀ» Ç¥œÃ
+ */
+static void kCPULoad( const char* pcParameterBuffer )
+{
+    kPrintf( "Processor Load : %d%%\n", kGetProcessorLoad() );
+}
+    
+// ¹ÂÅØœº Å×œºÆ®¿ë ¹ÂÅØœº¿Í º¯Œö
+static MUTEX gs_stMutex;
+static volatile QWORD gs_qwAdder;
+
+/**
+ *  ¹ÂÅØœºžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ©
+ */
+static void kPrintNumberTask( void )
+{
+    int i;
+    int j;
+    QWORD qwTickCount;
+
+    // 50ms Á€µµ Žë±âÇÏ¿© ÄÜŒÖ ŒÐÀÌ Ãâ·ÂÇÏŽÂ žÞœÃÁö¿Í °ãÄ¡Áö ŸÊµµ·Ï ÇÔ
+    qwTickCount = kGetTickCount();
+    while( ( kGetTickCount() - qwTickCount ) < 50 )
+    {
+        kSchedule();
+    }    
+    
+    // ·çÇÁžŠ µ¹žéŒ­ ŒýÀÚžŠ Ãâ·Â
+    for( i = 0 ; i < 5 ; i++ )
+    {
+        kLock( &( gs_stMutex ) );
+        kPrintf( "Task ID [0x%Q] Value[%d]\n", kGetRunningTask()->stLink.qwID,
+                gs_qwAdder );
+        
+        gs_qwAdder += 1;
+        kUnlock( & ( gs_stMutex ) );
+    
+        // ÇÁ·ÎŒŒŒ­ ŒÒžðžŠ ŽÃž®·Á°í Ãß°¡ÇÑ ÄÚµå
+        for( j = 0 ; j < 30000 ; j++ ) ;
+    }
+    
+    // žðµç ÅÂœºÅ©°¡ ÁŸ·áÇÒ ¶§±îÁö 1ÃÊ(100ms) Á€µµ Žë±â
+    qwTickCount = kGetTickCount();
+    while( ( kGetTickCount() - qwTickCount ) < 1000 )
+    {
+        kSchedule();
+    }    
+    
+    // ÅÂœºÅ© ÁŸ·á
+    //kExitTask();
+}
+
+/**
+ *  ¹ÂÅØœºžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ© »ýŒº
+ */
+static void kTestMutex( const char* pcParameterBuffer )
+{
+    int i;
+    
+    gs_qwAdder = 1;
+    
+    // ¹ÂÅØœº ÃÊ±âÈ­
+    kInitializeMutex( &gs_stMutex );
+    
+    for( i = 0 ; i < 3 ; i++ )
+    {
+        // ¹ÂÅØœºžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ©žŠ 3°³ »ýŒº
+        kCreateTask( TASK_FLAGS_LOW | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kPrintNumberTask );
+    }    
+    kPrintf( "Wait Util %d Task End...\n", i );
+    kGetCh();
+}
+
+/**
+ *  ÅÂœºÅ© 2žŠ ÀÚœÅÀÇ œº·¹µå·Î »ýŒºÇÏŽÂ ÅÂœºÅ©
+ */
+static void kCreateThreadTask( void )
+{
+    int i;
+    
+    for( i = 0 ; i < 3 ; i++ )
+    {
+        kCreateTask( TASK_FLAGS_LOW | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+    }
+    
+    while( 1 )
+    {
+        kSleep( 1 );
+    }
+}
+
+/**
+ *  œº·¹µåžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ© »ýŒº
+ */
+static void kTestThread( const char* pcParameterBuffer )
+{
+    TCB* pstProcess;
+    
+    pstProcess = kCreateTask( TASK_FLAGS_LOW | TASK_FLAGS_PROCESS, ( void * )0xEEEEEEEE, 0x1000, 
+                              ( QWORD ) kCreateThreadTask );
+    if( pstProcess != NULL )
+    {
+        kPrintf( "Process [0x%Q] Create Success\n", pstProcess->stLink.qwID ); 
+    }
+    else
+    {
+        kPrintf( "Process Create Fail\n" );
+    }
+}
+
+// ³­ŒöžŠ ¹ß»ýœÃÅ°±â À§ÇÑ º¯Œö
+static volatile QWORD gs_qwRandomValue = 0;
+
+/**
+ *  ÀÓÀÇÀÇ ³­ŒöžŠ ¹ÝÈ¯
+ */
+QWORD kRandom( void )
+{
+    gs_qwRandomValue = ( gs_qwRandomValue * 412153 + 5571031 ) >> 16;
+    return gs_qwRandomValue;
+}
+
+/**
+ *  Ã¶ÀÚžŠ Èê·¯³»ž®°Ô ÇÏŽÂ œº·¹µå
+ */
+static void kDropCharactorThread( void )
+{
+    int iX, iY;
+    int i;
+    char vcText[ 2 ] = { 0, };
+
+    iX = kRandom() % CONSOLE_WIDTH;
+    
+    while( 1 )
+    {
+        // ÀáœÃ Žë±âÇÔ
+        kSleep( kRandom() % 20 );
+        
+        if( ( kRandom() % 20 ) < 16 )
+        {
+            vcText[ 0 ] = ' ';
+            for( i = 0 ; i < CONSOLE_HEIGHT - 1 ; i++ )
+            {
+                kPrintStringXY( iX, i , vcText );
+                kSleep( 50 );
+            }
+        }        
+        else
+        {
+            for( i = 0 ; i < CONSOLE_HEIGHT - 1 ; i++ )
+            {
+                vcText[ 0 ] = i + kRandom();
+                kPrintStringXY( iX, i, vcText );
+                kSleep( 50 );
+            }
+        }
+    }
+}
+
+/**
+ *  œº·¹µåžŠ »ýŒºÇÏ¿© žÅÆ®ž¯œº È­žéÃ³·³ ºž¿©ÁÖŽÂ ÇÁ·ÎŒŒœº
+ */
+static void kMatrixProcess( void )
+{
+    int i;
+    
+    for( i = 0 ; i < 300 ; i++ )
+    {
+        if( kCreateTask( TASK_FLAGS_THREAD | TASK_FLAGS_LOW, 0, 0, 
+                         ( QWORD ) kDropCharactorThread ) == NULL )
+        {
+            break;
+        }
+        
+        kSleep( kRandom() % 5 + 5 );
+    }
+    
+    kPrintf( "%d Thread is created\n", i );
+
+    // Å°°¡ ÀÔ·ÂµÇžé ÇÁ·ÎŒŒœº ÁŸ·á
+    kGetCh();
+}
+
+/**
+ *  žÅÆ®ž¯œº È­žéÀ» ºž¿©ÁÜ
+ */
+static void kShowMatrix( const char* pcParameterBuffer )
+{
+    TCB* pstProcess;
+    
+    pstProcess = kCreateTask( TASK_FLAGS_PROCESS | TASK_FLAGS_LOW, ( void* ) 0xE00000, 0xE00000, 
+                              ( QWORD ) kMatrixProcess );
+    if( pstProcess != NULL )
+    {
+        kPrintf( "Matrix Process [0x%Q] Create Success\n" );
+
+        // ÅÂœºÅ©°¡ ÁŸ·á µÉ ¶§±îÁö Žë±â
+        while( ( pstProcess->stLink.qwID >> 32 ) != 0 )
+        {
+            kSleep( 100 );
+        }
+    }
+    else
+    {
+        kPrintf( "Matrix Process Create Fail\n" );
+    }
+}
+
+void kDummy(const char* pcParamegerBuffer){}
+
+// Exception cause
 void kPagefault( const char* pcParameterBuffer )
 {
 	DWORD **faultptr;
@@ -579,5 +1215,3 @@ void kProtectionfault( const char* pcParameterBuffer )
 	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
-
-void kDummy(const char* pcParamegerBuffer){}

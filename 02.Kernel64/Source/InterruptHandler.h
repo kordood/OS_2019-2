@@ -17,9 +17,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 void kCommonExceptionHandler( int iVectorNumber, QWORD qwErrorCode );
-void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode );
 void kCommonInterruptHandler( int iVectorNumber );
+void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode );
 void kKeyboardHandler( int iVectorNumber );
+void kTimerHandler( int iVectorNumber );
 
 static inline void invlpg(void* m);
 #endif /*__INTERRUPTHANDLER_H__*/

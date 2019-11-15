@@ -1,7 +1,7 @@
 /**
  *  file    InterruptHandler.c
  *  date    2009/01/24
- *  author  kkamagui
+ *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
  *  brief   인터럽트 및 예외 핸들러에 관련된 소스 파일
  */
@@ -10,6 +10,9 @@
 #include "PIC.h"
 #include "Keyboard.h"
 #include "Console.h"
+#include "Utility.h"
+#include "Task.h"
+#include "Descriptor.h"
 
 /**
  *  공통으로 사용하는 예외 핸들러
@@ -39,6 +42,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
     ecBuffer[ 1 ] = '0' + (qwErrorCode>>32) % 10;
     ecBuffer[ 2 ] = '0' + qwErrorCode / 10;
     ecBuffer[ 3 ] = '0' + qwErrorCode % 10;
+	kPrintf("error code: %s\n", ecBuffer);
 
 	if(!(qwErrorCode & 0x01)){					// is page fault?
 		DWORD entryIndex;
@@ -57,6 +61,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
     		kPrintStringXY( 32, 4, "Entry index bound error");
 			while(1);
 		}
+		
 
 		QWORD pt_index, pd_index, pdpt_index, pml4_index;
 		QWORD *ptr;
@@ -83,6 +88,8 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 			*ptr = (*ptr) ^ 0x01;
 		}
 
+		kPrintf("idx: 0x%x\n", pd_index);
+		if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
 		if(((*ptr) & 0x01) ^ 0x01){
@@ -91,6 +98,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		QWORD var = *ptr;
 
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+		}
 
 		invlpg(&CR2);
 		/*
@@ -152,6 +160,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 			*ptr = (*ptr) ^ 0x02;
 		}
 
+		if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
 
 		if(((*ptr) & 0x02) ^ 0x02){
@@ -160,6 +169,7 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 		QWORD var = *ptr;
 
 		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+		}
 
 		invlpg(&CR2);
 
@@ -170,8 +180,9 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
 	}
 }
 
+
 /**
- *  공통으로 사용하는 인터럽트 핸들러
+ *  공통으로 사용하는 인터럽트 핸들러 
  */
 void kCommonInterruptHandler( int iVectorNumber )
 {
@@ -222,6 +233,40 @@ void kKeyboardHandler( int iVectorNumber )
 
     // EOI 전송
     kSendEOIToPIC( iVectorNumber - PIC_IRQSTARTVECTOR );
+}
+
+/**
+ *  타이머 인터럽트의 핸들러
+ */
+void kTimerHandler( int iVectorNumber )
+{
+    char vcBuffer[] = "[INT:  , ]";
+    static int g_iTimerInterruptCount = 0;
+
+    //=========================================================================
+    // 인터럽트가 발생했음을 알리려고 메시지를 출력하는 부분
+    // 인터럽트 벡터를 화면 오른쪽 위에 2자리 정수로 출력
+    vcBuffer[ 5 ] = '0' + iVectorNumber / 10;
+    vcBuffer[ 6 ] = '0' + iVectorNumber % 10;
+    // 발생한 횟수 출력
+    vcBuffer[ 8 ] = '0' + g_iTimerInterruptCount;
+    g_iTimerInterruptCount = ( g_iTimerInterruptCount + 1 ) % 10;
+    kPrintStringXY( 70, 0, vcBuffer );
+    //=========================================================================
+    
+    // EOI 전송
+    kSendEOIToPIC( iVectorNumber - PIC_IRQSTARTVECTOR );
+
+    // 타이머 발생 횟수를 증가
+    g_qwTickCount++;
+
+    // 태스크가 사용한 프로세서의 시간을 줄임
+    kDecreaseProcessorTime();
+    // 프로세서가 사용할 수 있는 시간을 다 썼다면 태스크 전환 수행
+    if( kIsProcessorTimeExpired() == TRUE )
+    {
+        kScheduleInInterrupt();
+    }
 }
 
 static inline void invlpg(void* m)

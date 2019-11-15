@@ -10,6 +10,10 @@
 #include "AssemblyUtility.h"
 #include <stdarg.h>
 
+
+// PIT 컨트롤러가 발생한 횟수를 저장할 카운터
+volatile QWORD g_qwTickCount = 0;
+
 /**
  *  메모리를 특정 값으로 채움
  */
@@ -63,9 +67,9 @@ int kMemCmp( const void* pvDestination, const void* pvSource, int iSize )
 BOOL kSetInterruptFlag( BOOL bEnableInterrupt )
 {
     QWORD qwRFLAGS;
-
+    
     // 이전의 RFLAGS 레지스터 값을 읽은 뒤에 인터럽트 가능/불가 처리
-    qwRFLAGS = kReadRFLAGS();
+    qwRFLAGS = kReadRFLAGS();    
     if( bEnableInterrupt == TRUE )
     {
         kEnableInterrupt();
@@ -74,7 +78,7 @@ BOOL kSetInterruptFlag( BOOL bEnableInterrupt )
     {
         kDisableInterrupt();
     }
-
+    
     // 이전 RFLAGS 레지스터의 IF 비트(비트 9)를 확인하여 이전의 인터럽트 상태를 반환
     if( qwRFLAGS & 0x0200 )
     {
@@ -132,7 +136,7 @@ void kCheckTotalRAMSize( void )
     }
     // 체크가 성공한 어드레스를 1Mbyte로 나누어 Mbyte 단위로 계산
     gs_qwTotalRAMMBSize = ( QWORD ) pdwCurrentAddress / 0x100000;
-}
+}   
 
 /**
  *  RAM 크기를 반환
@@ -464,4 +468,27 @@ int kVSPrintf( char* pcBuffer, const char* pcFormatString, va_list ap )
     // NULL을 추가하여 완전한 문자열로 만들고 출력한 문자의 길이를 반환
     pcBuffer[ iBufferIndex ] = '\0';
     return iBufferIndex;
+}
+
+/**
+ *  Tick Count를 반환
+ */
+QWORD kGetTickCount( void )
+{
+    return g_qwTickCount;
+}
+
+/**
+ *  밀리세컨드(milisecond) 동안 대기
+ */
+void kSleep( QWORD qwMillisecond )
+{
+    QWORD qwLastTickCount;
+    
+    qwLastTickCount = g_qwTickCount;
+    
+    while( ( g_qwTickCount - qwLastTickCount ) <= qwMillisecond )
+    {
+        kSchedule();
+    }
 }
