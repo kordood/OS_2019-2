@@ -3,7 +3,7 @@
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   ì½˜ì†” ì…¸ì— ê´€ë ¨ëœ í—¤ë” íŒŒì¼
+ *  brief   ÄÜ¼Ö ¼Ğ¿¡ °ü·ÃµÈ Çì´õ ÆÄÀÏ
  */
 
 #ifndef __CONSOLESHELL_H__
@@ -13,43 +13,43 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// ë§¤í¬ë¡œ
+// ¸ÅÅ©·Î
 //
 ////////////////////////////////////////////////////////////////////////////////
 #define CONSOLESHELL_MAXCOMMANDBUFFERCOUNT  300
 #define CONSOLESHELL_PROMPTMESSAGE          "MINT64> "
 
-// ë¬¸ìì—´ í¬ì¸í„°ë¥¼ íŒŒë¼ë¯¸í„°ë¡œ ë°›ëŠ” í•¨ìˆ˜ í¬ì¸í„° íƒ€ì… ì •ì˜
+// ¹®ÀÚ¿­ Æ÷ÀÎÅÍ¸¦ ÆÄ¶ó¹ÌÅÍ·Î ¹Ş´Â ÇÔ¼ö Æ÷ÀÎÅÍ Å¸ÀÔ Á¤ÀÇ
 typedef void ( * CommandFunction ) ( const char* pcParameter );
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// êµ¬ì¡°ì²´
+// ±¸Á¶Ã¼
 //
 ////////////////////////////////////////////////////////////////////////////////
-// 1ë°”ì´íŠ¸ë¡œ ì •ë ¬
+// 1¹ÙÀÌÆ®·Î Á¤·Ä
 #pragma pack( push, 1 )
 
-// ì…¸ì˜ ì»¤ë§¨ë“œë¥¼ ì €ì¥í•˜ëŠ” ìë£Œêµ¬ì¡°
+// ¼ĞÀÇ Ä¿¸Çµå¸¦ ÀúÀåÇÏ´Â ÀÚ·á±¸Á¶
 typedef struct kShellCommandEntryStruct
 {
-    // ì»¤ë§¨ë“œ ë¬¸ìì—´
+    // Ä¿¸Çµå ¹®ÀÚ¿­
     char* pcCommand;
-    // ì»¤ë§¨ë“œì˜ ë„ì›€ë§
+    // Ä¿¸ÇµåÀÇ µµ¿ò¸»
     char* pcHelp;
-    // ì»¤ë§¨ë“œë¥¼ ìˆ˜í–‰í•˜ëŠ” í•¨ìˆ˜ì˜ í¬ì¸í„°
+    // Ä¿¸Çµå¸¦ ¼öÇàÇÏ´Â ÇÔ¼öÀÇ Æ÷ÀÎÅÍ
     CommandFunction pfFunction;
 } SHELLCOMMANDENTRY;
 
-// íŒŒë¼ë¯¸í„°ë¥¼ ì²˜ë¦¬í•˜ê¸°ìœ„í•´ ì •ë³´ë¥¼ ì €ì¥í•˜ëŠ” ìë£Œêµ¬ì¡°
+// ÆÄ¶ó¹ÌÅÍ¸¦ Ã³¸®ÇÏ±âÀ§ÇØ Á¤º¸¸¦ ÀúÀåÇÏ´Â ÀÚ·á±¸Á¶
 typedef struct kParameterListStruct
 {
-    // íŒŒë¼ë¯¸í„° ë²„í¼ì˜ ì–´ë“œë ˆìŠ¤
+    // ÆÄ¶ó¹ÌÅÍ ¹öÆÛÀÇ ¾îµå·¹½º
     const char* pcBuffer;
-    // íŒŒë¼ë¯¸í„°ì˜ ê¸¸ì´
+    // ÆÄ¶ó¹ÌÅÍÀÇ ±æÀÌ
     int iLength;
-    // í˜„ì¬ ì²˜ë¦¬í•  íŒŒë¼ë¯¸í„°ê°€ ì‹œì‘í•˜ëŠ” ìœ„ì¹˜
+    // ÇöÀç Ã³¸®ÇÒ ÆÄ¶ó¹ÌÅÍ°¡ ½ÃÀÛÇÏ´Â À§Ä¡
     int iCurrentPosition;
 } PARAMETERLIST;
 
@@ -57,10 +57,10 @@ typedef struct kParameterListStruct
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// í•¨ìˆ˜
+// ÇÔ¼ö
 //
 ////////////////////////////////////////////////////////////////////////////////
-// ì‹¤ì œ ì…¸ ì½”ë“œ
+// ½ÇÁ¦ ¼Ğ ÄÚµå
 void kStartConsoleShell( void );
 void kExecuteCommand( const char* pcCommandBuffer );
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter );
@@ -69,12 +69,26 @@ int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter );
 //
 void kExecuteTab( char* pcCommadBuffer, int* iCommandBufferIndex, int tabflag);
 
-// ì»¤ë§¨ë“œë¥¼ ì²˜ë¦¬í•˜ëŠ” í•¨ìˆ˜
-void kHelp( const char* pcParameterBuffer );
-void kCls( const char* pcParameterBuffer );
-void kShowTotalRAMSize( const char* pcParameterBuffer );
-void kStringToDecimalHexTest( const char* pcParameterBuffer );
-void kShutdown( const char* pcParamegerBuffer );
+// Ä¿¸Çµå¸¦ Ã³¸®ÇÏ´Â ÇÔ¼ö
+static void kHelp( const char* pcParameterBuffer );
+static void kCls( const char* pcParameterBuffer );
+static void kShowTotalRAMSize( const char* pcParameterBuffer );
+static void kStringToDecimalHexTest( const char* pcParameterBuffer );
+static void kShutdown( const char* pcParamegerBuffer );
+static void kSetTimer( const char* pcParameterBuffer );
+static void kWaitUsingPIT( const char* pcParameterBuffer );
+static void kReadTimeStampCounter( const char* pcParameterBuffer );
+static void kMeasureProcessorSpeed( const char* pcParameterBuffer );
+static void kShowDateAndTime( const char* pcParameterBuffer );
+static void kCreateTestTask( const char* pcParameterBuffer );
+static void kChangeTaskPriority( const char* pcParameterBuffer );
+static void kShowTaskList( const char* pcParameterBuffer );
+static void kKillTask( const char* pcParameterBuffer );
+static void kCPULoad( const char* pcParameterBuffer );
+static void kTestMutex( const char* pcParameterBuffer );
+static void kCreateThreadTask( void );
+static void kTestThread( const char* pcParameterBuffer );
+static void kShowMatrix( const char* pcParameterBuffer );
 
 void kPagefault( const char* pcParameterBuffer );
 void kProtectionfault( const char* pcParameterBuffer );

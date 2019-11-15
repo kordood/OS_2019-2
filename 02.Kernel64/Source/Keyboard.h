@@ -68,7 +68,7 @@
 
 // 키 큐에 대한 매크로
 // 키 큐의 최대 크기
-#define KEY_MAXQUEUECOUNT   100
+#define KEY_MAXQUEUECOUNT	100
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -83,7 +83,7 @@ typedef struct kKeyMappingEntryStruct
 {
     // Shift 키나 Caps Lock 키와 조합되지 않는 ASCII 코드
     BYTE bNormalCode;
-
+    
     // Shift 키나 Caps Lock 키와 조합된 ASCII 코드
     BYTE bCombinedCode;
 } KEYMAPPINGENTRY;
@@ -96,7 +96,7 @@ typedef struct kKeyboardManagerStruct
     BOOL bCapsLockOn;
     BOOL bNumLockOn;
     BOOL bScrollLockOn;
-
+    
     // 확장 키를 처리하기 위한 정보
     BOOL bExtendedCodeIn;
     int iSkipCountForPause;
@@ -106,11 +106,11 @@ typedef struct kKeyboardManagerStruct
 typedef struct kKeyDataStruct
 {
     // 키보드에서 전달된 스캔 코드
-    BYTE bScanCode;
+	BYTE bScanCode;
     // 스캔 코드를 변환한 ASCII 코드
-    BYTE bASCIICode;
+	BYTE bASCIICode;
     // 키 상태를 저장하는 플래그(눌림/떨어짐/확장 키 여부)
-    BYTE bFlags;
+	BYTE bFlags;
 } KEYDATA;
 
 #pragma pack( pop )

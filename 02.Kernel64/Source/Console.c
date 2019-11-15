@@ -179,7 +179,7 @@ BYTE kGetCh( void )
         // 키 큐에 데이터가 수신될 때까지 대기
         while( kGetKeyFromKeyQueue( &stData ) == FALSE )
         {
-            ;
+            kSchedule();
         }
         
         // 키가 눌렸다는 데이터가 수신되면 ASCII 코드를 반환

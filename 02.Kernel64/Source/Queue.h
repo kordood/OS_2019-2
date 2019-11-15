@@ -1,7 +1,7 @@
 /**
  *  file    Queue.h
  *  date    2009/01/25
- *  author  kkamagui
+ *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
  *  brief   큐에 관련된 함수를 정의한 헤더 파일
  */
@@ -30,7 +30,7 @@ typedef struct kQueueManagerStruct
     void* pvQueueArray;
     int iPutIndex;
     int iGetIndex;
-
+    
     // 큐에 수행된 마지막 명령이 삽입인지를 저장
     BOOL bLastOperationPut;
 } QUEUE;
@@ -42,8 +42,8 @@ typedef struct kQueueManagerStruct
 // 함수
 //
 ////////////////////////////////////////////////////////////////////////////////
-void kInitializeQueue( QUEUE* pstQueue, void* pvQueueBuffer, int iMaxDataCount,
-        int iDataSize );
+void kInitializeQueue( QUEUE* pstQueue, void* pvQueueBuffer, int iMaxDataCount, 
+		int iDataSize );
 BOOL kIsQueueFull( const QUEUE* pstQueue );
 BOOL kIsQueueEmpty( const QUEUE* pstQueue );
 BOOL kPutQueue( QUEUE* pstQueue, const void* pvData );

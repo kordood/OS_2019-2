@@ -10,10 +10,11 @@
 #include "AssemblyUtility.h"
 #include "Keyboard.h"
 #include "Queue.h"
+#include "Synchronization.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// 키보드 컨트롤러 및 키보드 제어에 관련된 함수들
+// 키보드 컨트롤러 및 키보드 제어에 관련된 함수들 
 //
 ////////////////////////////////////////////////////////////////////////////////
 /**
@@ -53,7 +54,7 @@ BOOL kWaitForACKAndPutOtherScanCode( void )
     int i, j;
     BYTE bData;
     BOOL bResult = FALSE;
-
+    
     // ACK가 오기 전에 키보드 출력 버퍼(포트 0x60)에 키 데이터가 저장될 수 있으므로
     // 키보드에서 전달된 데이터를 최대 100개까지 수신하여 ACK를 확인
     for( j = 0 ; j < 100 ; j++ )
@@ -68,7 +69,7 @@ BOOL kWaitForACKAndPutOtherScanCode( void )
             {
                 break;
             }
-        }
+        }    
         // 출력 버퍼(포트 0x60)에서 읽은 데이터가 ACK(0xFA)이면 성공
         bData = kInPortByte( 0x60 );
         if( bData == 0xFA )
@@ -80,7 +81,7 @@ BOOL kWaitForACKAndPutOtherScanCode( void )
         else
         {
             kConvertScanCodeAndPutQueue( bData );
-        }
+        }        
     }
     return bResult;
 }
@@ -93,14 +94,14 @@ BOOL kActivateKeyboard( void )
     int i, j;
     BOOL bPreviousInterrupt;
     BOOL bResult;
-
+    
     // 인터럽트 불가
     bPreviousInterrupt = kSetInterruptFlag( FALSE );
-
+    
     // 컨트롤 레지스터(포트 0x64)에 키보드 활성화 커맨드(0xAE)를 전달하여 
     // 키보드 디바이스 활성화
     kOutPortByte( 0x64, 0xAE );
-
+        
     // 입력 버퍼(포트 0x60)가 빌 때까지 기다렸다가 키보드에 활성화 커맨드를 전송
     // 0xFFFF만큼 루프를 수행할 시간이면 충분히 커맨드가 전송될 수 있음
     // 0xFFFF 루프를 수행한 이후에도 입력 버퍼(포트 0x60)가 비지 않으면 무시하고 전송
@@ -114,10 +115,10 @@ BOOL kActivateKeyboard( void )
     }
     // 입력 버퍼(포트 0x60)로 키보드 활성화(0xF4) 커맨드를 전달하여 키보드로 전송
     kOutPortByte( 0x60, 0xF4 );
-
+    
     // ACK가 올 때까지 대기함
     bResult = kWaitForACKAndPutOtherScanCode();
-
+    
     // 이전 인터럽트 상태 복원
     kSetInterruptFlag( bPreviousInterrupt );
     return bResult;
@@ -145,10 +146,10 @@ BOOL kChangeKeyboardLED( BOOL bCapsLockOn, BOOL bNumLockOn, BOOL bScrollLockOn )
     BOOL bPreviousInterrupt;
     BOOL bResult;
     BYTE bData;
-
+    
     // 인터럽트 불가
-    bPreviousInterrupt = kSetInterruptFlag( FALSE );
-
+    bPreviousInterrupt = kSetInterruptFlag( FALSE );    
+        
     // 키보드에 LED 변경 커맨드 전송하고 커맨드가 처리될 때까지 대기
     for( i = 0 ; i < 0xFFFF ; i++ )
     {
@@ -158,7 +159,7 @@ BOOL kChangeKeyboardLED( BOOL bCapsLockOn, BOOL bNumLockOn, BOOL bScrollLockOn )
             break;
         }
     }
-
+    
     // 출력 버퍼(포트 0x60)로 LED 상태 변경 커맨드(0xED) 전송
     kOutPortByte( 0x60, 0xED );
     for( i = 0 ; i < 0xFFFF ; i++ )
@@ -169,7 +170,7 @@ BOOL kChangeKeyboardLED( BOOL bCapsLockOn, BOOL bNumLockOn, BOOL bScrollLockOn )
             break;
         }
     }
-
+    
     // ACK가 올때까지 대기함
     bResult = kWaitForACKAndPutOtherScanCode();
 
@@ -179,7 +180,7 @@ BOOL kChangeKeyboardLED( BOOL bCapsLockOn, BOOL bNumLockOn, BOOL bScrollLockOn )
         kSetInterruptFlag( bPreviousInterrupt );
         return FALSE;
     }
-
+    
     // LED 변경 값을 키보드로 전송하고 데이터가 처리가 완료될 때까지 대기
     kOutPortByte( 0x60, ( bCapsLockOn << 2 ) | ( bNumLockOn << 1 ) | bScrollLockOn );
     for( i = 0 ; i < 0xFFFF ; i++ )
@@ -190,7 +191,7 @@ BOOL kChangeKeyboardLED( BOOL bCapsLockOn, BOOL bNumLockOn, BOOL bScrollLockOn )
             break;
         }
     }
-
+    
     // ACK가 올 때까지 대기함
     bResult = kWaitForACKAndPutOtherScanCode();
 
@@ -206,14 +207,14 @@ void kEnableA20Gate( void )
 {
     BYTE bOutputPortData;
     int i;
-
+    
     // 컨트롤 레지스터(포트 0x64)에 키보드 컨트롤러의 출력 포트 값을 읽는 커맨드(0xD0) 전송
     kOutPortByte( 0x64, 0xD0 );
-
+    
     // 출력 포트의 데이터를 기다렸다가 읽음
     for( i = 0 ; i < 0xFFFF ; i++ )
     {
-        // 출력 버퍼(포트 0x60)가 차있으면 데이터를 읽을 수 있음
+        // 출력 버퍼(포트 0x60)가 차있으면 데이터를 읽을 수 있음 
         if( kIsOutputBufferFull() == TRUE )
         {
             break;
@@ -221,10 +222,10 @@ void kEnableA20Gate( void )
     }
     // 출력 포트(포트 0x60)에 수신된 키보드 컨트롤러의 출력 포트 값을 읽음
     bOutputPortData = kInPortByte( 0x60 );
-
+    
     // A20 게이트 비트 설정
     bOutputPortData |= 0x01;
-
+    
     // 입력 버퍼(포트 0x60)에 데이터가 비어있으면 출력 포트에 값을 쓰는 커맨드와 출력 포트 데이터 전송
     for( i = 0 ; i < 0xFFFF ; i++ )
     {
@@ -234,10 +235,10 @@ void kEnableA20Gate( void )
             break;
         }
     }
-
+    
     // 커맨드 레지스터(0x64)에 출력 포트 설정 커맨드(0xD1)을 전달
     kOutPortByte( 0x64, 0xD1 );
-
+    
     // 입력 버퍼(0x60)에 A20 게이트 비트가 1로 설정된 값을 전달
     kOutPortByte( 0x60, bOutputPortData );
 }
@@ -248,7 +249,7 @@ void kEnableA20Gate( void )
 void kReboot( void )
 {
     int i;
-
+    
     // 입력 버퍼(포트 0x60)에 데이터가 비어있으면 출력 포트에 값을 쓰는 커맨드와 출력 포트 데이터 전송
     for( i = 0 ; i < 0xFFFF ; i++ )
     {
@@ -258,13 +259,13 @@ void kReboot( void )
             break;
         }
     }
-
+    
     // 커맨드 레지스터(0x64)에 출력 포트 설정 커맨드(0xD1)을 전달
     kOutPortByte( 0x64, 0xD1 );
-
+    
     // 입력 버퍼(0x60)에 0을 전달하여 프로세서를 리셋(Reset)함
     kOutPortByte( 0x60, 0x00 );
-
+    
     while( 1 )
     {
         ;
@@ -278,7 +279,6 @@ void kReboot( void )
 ////////////////////////////////////////////////////////////////////////////////
 // 키보드 상태를 관리하는 키보드 매니저
 static KEYBOARDMANAGER gs_stKeyboardManager = { 0, };
-
 // 키를 저장하는 큐와 버퍼 정의
 static QUEUE gs_stKeyQueue;
 static KEYDATA gs_vstKeyQueueBuffer[ KEY_MAXQUEUECOUNT ];
@@ -357,7 +357,7 @@ static KEYMAPPINGENTRY gs_vstKeyMappingTable[ KEY_MAPPINGTABLEMAXCOUNT ] =
     /*  68  */  {   KEY_F10         ,   KEY_F10         },
     /*  69  */  {   KEY_NUMLOCK     ,   KEY_NUMLOCK     },
     /*  70  */  {   KEY_SCROLLLOCK  ,   KEY_SCROLLLOCK  },
-
+    
     /*  71  */  {   KEY_HOME        ,   '7'             },
     /*  72  */  {   KEY_UP          ,   '8'             },
     /*  73  */  {   KEY_PAGEUP      ,   '9'             },
@@ -375,7 +375,7 @@ static KEYMAPPINGENTRY gs_vstKeyMappingTable[ KEY_MAPPINGTABLEMAXCOUNT ] =
     /*  85  */  {   KEY_NONE        ,   KEY_NONE        },
     /*  86  */  {   KEY_NONE        ,   KEY_NONE        },
     /*  87  */  {   KEY_F11         ,   KEY_F11         },
-    /*  88  */  {   KEY_F12         ,   KEY_F12         }
+    /*  88  */  {   KEY_F12         ,   KEY_F12         }   
 };
 
 /**
@@ -399,12 +399,12 @@ BOOL kIsNumberOrSymbolScanCode( BYTE bScanCode )
 {
     // 숫자 패드나 확장 키 범위를 제외한 범위(스캔 코드 2~53)에서 영문자가 아니면
     // 숫자 또는 기호임
-    if( ( 2 <= bScanCode ) && ( bScanCode <= 53 ) &&
+    if( ( 2 <= bScanCode ) && ( bScanCode <= 53 ) && 
         ( kIsAlphabetScanCode( bScanCode ) == FALSE ) )
     {
         return TRUE;
     }
-
+    
     return FALSE;
 }
 
@@ -418,7 +418,7 @@ BOOL kIsNumberPadScanCode( BYTE bScanCode )
     {
         return TRUE;
     }
-
+    
     return FALSE;
 }
 
@@ -429,9 +429,9 @@ BOOL kIsUseCombinedCode( BOOL bScanCode )
 {
     BYTE bDownScanCode;
     BOOL bUseCombinedKey;
-
+    
     bDownScanCode = bScanCode & 0x7F;
-
+    
     // 알파벳 키라면 Shift 키와 Caps Lock의 영향을 받음
     if( kIsAlphabetScanCode( bDownScanCode ) == TRUE )
     {
@@ -459,9 +459,9 @@ BOOL kIsUseCombinedCode( BOOL bScanCode )
         }
     }
     // 숫자 패드 키라면 Num Lock 키의 영향을 받음
-    // 0xE0만 제외하면 확장 키 코드와 숫자 패드의 코드가 겹치므로,
+    // 0xE0만 제외하면 확장 키 코드와 숫자 패드의 코드가 겹치므로, 
     // 확장 키 코드가 수신되지 않았을 때만처리 조합된 코드 사용
-    else if( ( kIsNumberPadScanCode( bDownScanCode ) == TRUE ) &&
+    else if( ( kIsNumberPadScanCode( bDownScanCode ) == TRUE ) && 
              ( gs_stKeyboardManager.bExtendedCodeIn == FALSE ) )
     {
         // Num Lock 키가 눌러져있으면, 조합된 키를 되돌려 줌
@@ -483,10 +483,10 @@ BOOL kIsUseCombinedCode( BOOL bScanCode )
  */
 void UpdateCombinationKeyStatusAndLED( BYTE bScanCode )
 {
-    BOOL bDown;
+    BOOL bDown; 
     BYTE bDownScanCode;
     BOOL bLEDStatusChanged = FALSE;
-
+    
     // 눌림 또는 떨어짐 상태처리, 최상위 비트(비트 7)가 1이면 키가 떨어졌음을 의미하고
     // 0이면 떨어졌음을 의미함
     if( bScanCode & 0x80 )
@@ -499,7 +499,7 @@ void UpdateCombinationKeyStatusAndLED( BYTE bScanCode )
         bDown = TRUE;
         bDownScanCode = bScanCode;
     }
-
+    
     // 조합 키 검색
     // Shift 키의 스캔 코드(42 or 54)이면 Shift 키의 상태 갱신
     if( ( bDownScanCode == 42 ) || ( bDownScanCode == 54 ) )
@@ -524,11 +524,11 @@ void UpdateCombinationKeyStatusAndLED( BYTE bScanCode )
         gs_stKeyboardManager.bScrollLockOn ^= TRUE;
         bLEDStatusChanged = TRUE;
     }
-
+    
     // LED 상태가 변했으면 키보드로 커맨드를 전송하여 LED를 변경
     if( bLEDStatusChanged == TRUE )
     {
-        kChangeKeyboardLED( gs_stKeyboardManager.bCapsLockOn,
+        kChangeKeyboardLED( gs_stKeyboardManager.bCapsLockOn, 
             gs_stKeyboardManager.bNumLockOn, gs_stKeyboardManager.bScrollLockOn );
     }
 }
@@ -546,7 +546,7 @@ BOOL kConvertScanCodeToASCIICode( BYTE bScanCode, BYTE* pbASCIICode, BOOL* pbFla
         gs_stKeyboardManager.iSkipCountForPause--;
         return FALSE;
     }
-
+    
     // Pause 키는 특별히 처리
     if( bScanCode == 0xE1 )
     {
@@ -560,8 +560,8 @@ BOOL kConvertScanCodeToASCIICode( BYTE bScanCode, BYTE* pbASCIICode, BOOL* pbFla
     {
         gs_stKeyboardManager.bExtendedCodeIn = TRUE;
         return FALSE;
-    }
-
+    }    
+    
     // 조합된 키를 반환해야 하는가?
     bUseCombinedKey = kIsUseCombinedCode( bScanCode );
 
@@ -585,13 +585,13 @@ BOOL kConvertScanCodeToASCIICode( BYTE bScanCode, BYTE* pbASCIICode, BOOL* pbFla
     {
         *pbFlags = 0;
     }
-
+    
     // 눌러짐 또는 떨어짐 유무 설정
     if( ( bScanCode & 0x80 ) == 0 )
     {
         *pbFlags |= KEY_FLAGS_DOWN;
     }
-
+ 
     // 조합 키 눌림 또는 떨어짐 상태를 갱신
     UpdateCombinationKeyStatusAndLED( bScanCode );
     return TRUE;
@@ -603,9 +603,9 @@ BOOL kConvertScanCodeToASCIICode( BYTE bScanCode, BYTE* pbASCIICode, BOOL* pbFla
 BOOL kInitializeKeyboard( void )
 {
     // 큐 초기화
-    kInitializeQueue( &gs_stKeyQueue, gs_vstKeyQueueBuffer, KEY_MAXQUEUECOUNT,
+    kInitializeQueue( &gs_stKeyQueue, gs_vstKeyQueueBuffer, KEY_MAXQUEUECOUNT, 
             sizeof( KEYDATA ) );
-
+    
     // 키보드 활성화
     return kActivateKeyboard();
 }
@@ -623,19 +623,19 @@ BOOL kConvertScanCodeAndPutQueue( BYTE bScanCode )
     stData.bScanCode = bScanCode;
     
     // 스캔 코드를 ASCII 코드와 키 상태로 변환하여 키 데이터에 삽입
-    if( kConvertScanCodeToASCIICode( bScanCode, &( stData.bASCIICode ),
+    if( kConvertScanCodeToASCIICode( bScanCode, &( stData.bASCIICode ), 
             &( stData.bFlags ) ) == TRUE )
     {
-        // 인터럽트 불가
-        bPreviousInterrupt = kSetInterruptFlag( FALSE );
-
+        // 임계 영역 시작
+        bPreviousInterrupt = kLockForSystemData();
+        
         // 키 큐에 삽입
         bResult = kPutQueue( &gs_stKeyQueue, &stData );
 
-        // 이전 인터럽트 플래그 복원
-        kSetInterruptFlag( bPreviousInterrupt );
+        // 임계 영역 끝
+        kUnlockForSystemData( bPreviousInterrupt );
     }
-
+    
     return bResult;
 }
 
@@ -646,20 +646,20 @@ BOOL kGetKeyFromKeyQueue( KEYDATA* pstData )
 {
     BOOL bResult;
     BOOL bPreviousInterrupt;
-
+    
     // 큐가 비었으면 키 데이터를 꺼낼 수 없음
     if( kIsQueueEmpty( &gs_stKeyQueue ) == TRUE )
     {
         return FALSE;
     }
 
-    // 인터럽트 불가
-    bPreviousInterrupt = kSetInterruptFlag( FALSE );
+    // 임계 영역 시작
+    bPreviousInterrupt = kLockForSystemData();
 
     // 키 큐에서 키 데이터를 제거
     bResult = kGetQueue( &gs_stKeyQueue, pstData );
 
-    // 이전 인터럽트 플래그 복원
-    kSetInterruptFlag( bPreviousInterrupt );
+    // 임계 영역 끝
+    kUnlockForSystemData( bPreviousInterrupt );
     return bResult;
 }
