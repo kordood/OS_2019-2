@@ -47,7 +47,7 @@ void kStartConsoleShell( void )
 	BYTE bKey;
 	int iCursorX, iCursorY;
 
-	// ¸í·É¹® 10°³ ÀúÀå¿ë list »ý¼º
+	// 명령문 10개 저장용 list 생성
 	DoubleLinkedList spdll;
 	DoubleLinkedList* spDLL = CreateLinkedList(&spdll);
 	int iCNT = 0;
@@ -108,7 +108,7 @@ void kStartConsoleShell( void )
 			}
 
 			if(iCommandBufferIndex > 0){
-				//¸í·É¹®À» DoubleLinkedList¿¡ »ðÀÔ
+				//명령문을 DoubleLinkedList에 삽입
 				if(iCNT >= 10){
 					DownOn = 0;
 					Pop_Front(spDLL);
