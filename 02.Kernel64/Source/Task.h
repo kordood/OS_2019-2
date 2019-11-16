@@ -72,6 +72,17 @@
 #define TASK_FLAGS_LOWEST             4
 #define TASK_FLAGS_WAIT               0xFF          
 
+
+//태스크의 우선순위에 따른 티켓 수
+#define TASK_HIGHEST_TICKET			  50
+#define TASK_HIGH_TICKET			  40	
+#define TASK_MEDIUM_TICKET			  30
+#define TASK_LOW_TICKET				  20
+#define TASK_LOWEST_TICKET			  10
+//전체 티켓 수
+#define TICKET_MAX					  100000
+#define STRIDE_N					  1000000
+
 // 태스크의 플래그
 #define TASK_FLAGS_ENDTASK            0x8000000000000000
 #define TASK_FLAGS_SYSTEM             0x4000000000000000
@@ -136,6 +147,11 @@ typedef struct kTaskControlBlockStruct
     // 스택의 어드레스와 크기
     void* pvStackAddress;
     QWORD qwStackSize;
+	
+	//티켓 수
+	QWORD qwTicket;
+	QWORD qwStride;
+	QWORD qwPass;
 } TCB;
 
 // TCB 풀의 상태를 관리하는 자료구조
