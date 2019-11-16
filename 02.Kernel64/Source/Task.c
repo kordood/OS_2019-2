@@ -13,7 +13,7 @@
 static SCHEDULER gs_stScheduler;
 static TCBPOOLMANAGER gs_stTCBPoolManager;
 
-static QWORD totalCount
+static QWORD qwTicketCount;
 //==============================================================================
 //  태스크 풀과 태스크 관련
 //==============================================================================
@@ -150,23 +150,23 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 		switch(bPriority){
 			case 0 :
 				pstTask -> qwTicket = 50;
-				ticketCount += 50;
+				qwTicketCount += 50;
 				break;
 			case 1:
 				pstTask -> qwTicket = 40;
-				ticketCount += 40;
+				qwTicketCount += 40;
 				break;
 			case 2 :
 				pstTask -> qwTicket = 30;
-				ticketCount += 30;
+				qwTicketCount += 30;
 				break;
 			case 3 :
 				pstTask -> qwTicket = 20;
-				ticketCount += 20;
+				qwTicketCount += 20;
 				break;
 			case 4 :
 				pstTask -> qwTicket = 10;
-				ticketCount += 10;
+				qwTicketCount += 10;
 				break;
 		}
 	}
@@ -435,31 +435,31 @@ BOOL kChangePriority( QWORD qwTaskID, BYTE bPriority )
 		//우선순위에 맞춰 티켓수를 더해준다.
 		switch(bPriority){
 			case 0 :
-				ticketCount -= pstTask -> qwTicket;
-				pstTask -> qwTicket = 50;
-				ticketCount += 50;
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 50;
+				qwTicketCount += 50;
 				break;
 			case 1:
-				ticketCount -= pstTask -> qwTicket;
-				pstTask -> qwTicket = 40;
-				ticketCount += 40;
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 40;
+				qwTicketCount += 40;
 				break;
 			case 2 :
-				ticketCount -= pstTask -> qwTicket;
-				pstTask -> qwTicket = 30;
-				ticketCount += 30;
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 30;
+				qwTicketCount += 30;
 				break;
 			case 3 :
-				ticketCount -= pstTask -> qwTicket;
-				pstTask -> qwTicket = 20;
-				ticketCount += 20;
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 20;
+				qwTicketCount += 20;
 				break;
 			case 4 :
-				ticketCount -= pstTask -> qwTicket;
-				pstTask -> qwTicket = 10;
-				ticketCount += 10;
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 10;
+				qwTicketCount += 10;
 				break;
-		}
+		
 			
 		}
 	}
@@ -651,7 +651,7 @@ BOOL kEndTask( QWORD qwTaskID )
 	pstTarget = gs_stScheduler.pstRunningTask;
 	if( pstTarget->stLink.qwID == qwTaskID )
 	{
-		ticketCount -= pstTarget -> ticket;
+		qwTicketCount -= pstTarget -> qwTicket;
 		
 		pstTarget->qwFlags |= TASK_FLAGS_ENDTASK;
 		SETPRIORITY( pstTarget->qwFlags, TASK_FLAGS_WAIT );
