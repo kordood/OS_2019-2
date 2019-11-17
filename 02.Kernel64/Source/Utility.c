@@ -489,6 +489,6 @@ void kSleep( QWORD qwMillisecond )
     
     while( ( g_qwTickCount - qwLastTickCount ) <= qwMillisecond )
     {
-        kSchedule();
+        kSchedule_Stride();
     }
 }

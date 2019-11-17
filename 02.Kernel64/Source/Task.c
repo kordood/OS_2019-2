@@ -353,6 +353,35 @@ static TCB* kGetNextTaskToRun( void )
 	return pstTarget;
 }
 
+static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
+{
+    TCB* pstTarget = ( TCB* ) gs_stScheduler.pstRunningTask;
+    TCB* pstTemp = NULL;
+    LIST* pstList = NULL;
+    QWORD qwID = -1;
+
+    // 높은 우선 순위에서 낮은 우선 순위까지 리스트를 확인하여 스케줄링할 태스크를 선택
+    for( int i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+    {
+        pstTemp = ( TCB* ) kGetHeaderFromList( &( gs_stScheduler.vstReadyList[ i ] ) );
+        while( pstTemp != kGetNextFromList( &( gs_stScheduler.vstReadyList[ i ] ), pstTemp ) ){
+            pstTemp =  ( TCB* ) kGetNextFromList( &( gs_stScheduler.vstReadyList[ i ] ), pstTemp );
+
+            if(pstTarget->qwPass > pstTemp->qwPass)
+            {
+                pstTarget = pstTemp;
+                pstList = &( gs_stScheduler.vstReadyList[ i ] );
+            }
+        }
+    }
+
+    if(pstList != NULL){
+        kRemoveList( pstList, pstTarget->stLink.qwID );
+    }
+
+    return pstTarget;
+}
+
 /**
  *  태스크를 스케줄러의 준비 리스트에 삽입
  */
@@ -550,6 +579,63 @@ void kSchedule( void )
 	kUnlockForSystemData( bPreviousFlag );
 }
 
+
+void kSchedule_Stride( void )	// Stride scheduler
+{
+    TCB* pstRunningTask, * pstNextTask;
+    BOOL bPreviousFlag;
+    
+    // 전환할 태스크가 있어야 함
+    if( kGetReadyTaskCount() < 1 )
+    {
+        return ;
+    }
+    
+    // 전환하는 도중 인터럽트가 발생하여 태스크 전환이 또 일어나면 곤란하므로 전환하는 
+    // 동안 인터럽트가 발생하지 못하도록 설정
+    // 임계 영역 시작
+    bPreviousFlag = kLockForSystemData();
+    
+    // 실행할 다음 태스크를 얻음
+    pstNextTask = kGetNextTaskToRun();
+    if( pstNextTask == NULL )
+    {
+        // 임계 영역 끝
+        kUnlockForSystemData( bPreviousFlag );
+        return ;
+    }
+    
+    // 현재 수행중인 태스크의 정보를 수정한 뒤 콘텍스트 전환
+    pstRunningTask = gs_stScheduler.pstRunningTask; 
+    gs_stScheduler.pstRunningTask = pstNextTask;
+    
+    // 유휴 태스크에서 전환되었다면 사용한 프로세서 시간을 증가시킴
+    if( ( pstRunningTask->qwFlags & TASK_FLAGS_IDLE ) == TASK_FLAGS_IDLE )
+    {
+        gs_stScheduler.qwSpendProcessorTimeInIdleTask += 
+            TASK_PROCESSORTIME - gs_stScheduler.iProcessorTime;
+    }
+    
+    // 태스크 종료 플래그가 설정된 경우 콘텍스트를 저장할 필요가 없으므로, 대기 리스트에
+    // 삽입하고 콘텍스트 전환
+    if( pstRunningTask->qwFlags & TASK_FLAGS_ENDTASK )
+    {
+        kAddListToTail( &( gs_stScheduler.stWaitList ), pstRunningTask );
+        kSwitchContext( NULL, &( pstNextTask->stContext ) );
+    }
+    else
+    {
+        kAddTaskToReadyList( pstRunningTask );
+        kSwitchContext( &( pstRunningTask->stContext ), &( pstNextTask->stContext ) );
+    }
+
+    // 프로세서 사용 시간을 업데이트
+    gs_stScheduler.iProcessorTime = TASK_PROCESSORTIME;
+
+    // 임계 영역 끝
+    kUnlockForSystemData( bPreviousFlag );
+}
+
 /**
  *  인터럽트가 발생했을 때, 다른 태스크를 찾아 전환
  *      반드시 인터럽트나 예외가 발생했을 때 호출해야 함
@@ -612,6 +698,64 @@ BOOL kScheduleInInterrupt( void )
 	return TRUE;
 }
 
+BOOL kScheduleInInterrupt_Stride( void )
+{
+    TCB* pstRunningTask, * pstNextTask;
+    char* pcContextAddress;
+    BOOL bPreviousFlag;
+    
+    // 임계 영역 시작
+    bPreviousFlag = kLockForSystemData();
+    
+    // 전환할 태스크가 없으면 종료
+    pstNextTask = kGetNextTaskToRun_Stride();
+    if( pstNextTask == NULL )
+    {
+        // 임계 영역 끝
+        kUnlockForSystemData( bPreviousFlag );
+        return FALSE;
+    }
+    
+    //==========================================================================
+    //  태스크 전환 처리   
+    //      인터럽트 핸들러에서 저장한 콘텍스트를 다른 콘텍스트로 덮어쓰는 방법으로 처리
+    //==========================================================================
+    pcContextAddress = ( char* ) IST_STARTADDRESS + IST_SIZE - sizeof( CONTEXT );
+    
+    // 현재 수행중인 태스크의 정보를 수정한 뒤 콘텍스트 전환
+    pstRunningTask = gs_stScheduler.pstRunningTask;
+    gs_stScheduler.pstRunningTask = pstNextTask;
+
+    // 유휴 태스크에서 전환되었다면 사용한 Tick Count를 증가시킴
+    if( ( pstRunningTask->qwFlags & TASK_FLAGS_IDLE ) == TASK_FLAGS_IDLE )
+    {
+        gs_stScheduler.qwSpendProcessorTimeInIdleTask += TASK_PROCESSORTIME;
+    }    
+    
+    // 태스크 종료 플래그가 설정된 경우, 콘텍스트를 저장하지 않고 대기 리스트에만 삽입
+    if( pstRunningTask->qwFlags & TASK_FLAGS_ENDTASK )
+    {    
+        kAddListToTail( &( gs_stScheduler.stWaitList ), pstRunningTask );
+    }
+    // 태스크가 종료되지 않으면 IST에 있는 콘텍스트를 복사하고, 현재 태스크를 준비 리스트로
+    // 옮김
+    else
+    {
+        kMemCpy( &( pstRunningTask->stContext ), pcContextAddress, sizeof( CONTEXT ) );
+        kAddTaskToReadyList( pstRunningTask );
+    }
+    // 임계 영역 끝
+    kUnlockForSystemData( bPreviousFlag );
+
+    // 전환해서 실행할 태스크를 Running Task로 설정하고 콘텍스트를 IST에 복사해서
+    // 자동으로 태스크 전환이 일어나도록 함
+    kMemCpy( pcContextAddress, &( pstNextTask->stContext ), sizeof( CONTEXT ) );
+    
+    // 프로세서 사용 시간을 업데이트
+    gs_stScheduler.iProcessorTime = TASK_PROCESSORTIME;
+    return TRUE;
+}
+
 /**
  *  프로세서를 사용할 수 있는 시간을 하나 줄임
  */
@@ -659,7 +803,7 @@ BOOL kEndTask( QWORD qwTaskID )
 		// 임계 영역 끝
 		kUnlockForSystemData( bPreviousFlag );
 
-		kSchedule();
+		kSchedule_Stride();
 
 		// 태스크가 전환 되었으므로 아래 코드는 절대 실행되지 않음
 		while( 1 ) ;
@@ -937,7 +1081,7 @@ void kIdleTask( void )
 			}
 		}
 
-		kSchedule();
+		kSchedule_Stride();
 	}
 }
 
