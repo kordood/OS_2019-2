@@ -512,6 +512,7 @@ void kSchedule( void )
 
 	// 실행할 다음 태스크를 얻음
 	pstNextTask = kGetNextTaskToRun();
+	kPrintf("\n TCB id : 0x%Q\n",pstNextTask->stLink.qwID);
 	if( pstNextTask == NULL )
 	{
 		// 임계 영역 끝
