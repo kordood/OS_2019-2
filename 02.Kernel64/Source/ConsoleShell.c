@@ -1015,7 +1015,8 @@ static void kPrintNumberTask( void )
     qwTickCount = kGetTickCount();
     while( ( kGetTickCount() - qwTickCount ) < 50 )
     {
-        kSchedule();
+	kSchedule_Lottery();
+        //kSchedule();
     }    
     
     // ·çÇÁžŠ µ¹žéŒ­ ŒýÀÚžŠ Ãâ·Â
@@ -1036,7 +1037,8 @@ static void kPrintNumberTask( void )
     qwTickCount = kGetTickCount();
     while( ( kGetTickCount() - qwTickCount ) < 1000 )
     {
-        kSchedule();
+	kSchedule_Lottery();
+        //kSchedule();
     }    
     
     // ÅÂœºÅ© ÁŸ·á
