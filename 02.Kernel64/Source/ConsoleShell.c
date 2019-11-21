@@ -912,6 +912,7 @@ static void kShowTaskList( const char* pcParameterBuffer )
                      pstTCB->qwFlags, kGetListCount( &( pstTCB->stChildThreadList ) ) );
             kPrintf( "    Parent PID[0x%Q], Memory Address[0x%Q], Size[0x%Q]\n",
                     pstTCB->qwParentProcessID, pstTCB->pvMemoryAddress, pstTCB->qwMemorySize );
+			kPrintf("	  my ticket : %d\n", pstTCB->qwTicket);
         }
     }
 }

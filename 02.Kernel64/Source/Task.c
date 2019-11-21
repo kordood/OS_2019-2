@@ -136,6 +136,35 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 
 		// 부모 프로세스의 자식 스레드 리스트에 추가
 		kAddListToTail( &( pstProcess->stChildThreadList ), &( pstTask->stThreadLink ) );
+		
+		//priority에 따라 티켓 수를 다르게 배분한다.
+		BYTE bPriority = (qwFlags) & 0xFF;//형변환 해줘야하나?
+
+		kPrintf("\nqwFlags : [%Q]", qwFlags);
+		kPrintf("\nbPriority : [%d]\n", bPriority);
+		switch(bPriority){
+			case 0 :
+				pstTask -> qwTicket = 50;
+				qwTicketCount += 50;
+				break;
+			case 1:
+				pstTask -> qwTicket = 40;
+				qwTicketCount += 40;
+				break;
+			case 2 :
+				pstTask -> qwTicket = 30;
+				qwTicketCount += 30;
+				break;
+			case 3 :
+				pstTask -> qwTicket = 20;
+				qwTicketCount += 20;
+				break;
+			case 4 :
+				pstTask -> qwTicket = 10;
+				qwTicketCount += 10;
+				break;
+	
+		}
 	}
 	// 프로세스는 파라미터로 넘어온 값을 그대로 설정
 	else
@@ -146,7 +175,7 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 
 		//priority에 따라 티켓 수를 다르게 배분한다.
 		BYTE bPriority = (pstTask->qwFlags) & 0xFF;//형변환 해줘야하나?
-
+/*
 		switch(bPriority){
 			case 0 :
 				pstTask -> qwTicket = 50;
@@ -169,7 +198,7 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 				qwTicketCount += 10;
 				break;
 		}
-	}
+*/	}
 
 	// 스레드의 ID를 태스크 ID와 동일하게 설정
 	pstTask->stThreadLink.qwID = pstTask->stLink.qwID;    
@@ -271,6 +300,7 @@ void kInitializeScheduler( void )
 	pstTask->pvStackAddress = ( void* ) 0x600000;
 	pstTask->qwStackSize = 0x100000;
 
+	pstTask -> qwTicket = 100;
 	// 프로세서 사용률을 계산하는데 사용하는 자료구조 초기화
 	gs_stScheduler.qwSpendProcessorTimeInIdleTask = 0;
 	gs_stScheduler.qwProcessorLoad = 0;
@@ -366,8 +396,10 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 	BYTE kSecond;
 	kReadRTCTime(NULL, NULL, &kSecond);
 	SSU_srand(kSecond);
-	QWORD winner = SSU_rand()%100000;
-	
+	//QWORD winner = SSU_rand()%100000;
+	QWORD winner = 0;
+	if(qwTicketCount != 0) winner = SSU_rand()%qwTicketCount;
+	//kPrintf("winner : %d\n", winner);
 	QWORD counter = 0;
 
 	// 높은 우선 순위에서 낮은 우선 순위까지 리스트를 확인하여 스케줄링할 태스크를 선택
@@ -1012,9 +1044,14 @@ void kIdleTask( void )
 		}
 		else
 		{
+			
 			gs_stScheduler.qwProcessorLoad = 100 - 
 				( qwCurrentSpendTickInIdleTask - qwLastSpendTickInIdleTask ) * 
 				100 /( qwCurrentMeasureTickCount - qwLastMeasureTickCount );
+			
+			//gs_stScheduler.qwProcessorLoad = (qwCurrentSpendTickInIdleTask - qwLastSpendTickInIdleTask) * 100;
+		//gs_stScheduler.qwProcessorLoad = qwCurrentMeasureTickCount - qwLastMeasureTickCount;
+			
 		}
 
 		// 현재 상태를 이전 상태에 보관
