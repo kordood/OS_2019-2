@@ -363,49 +363,46 @@ TCB* kGetRunningTask( void )
  */
 static TCB* kGetNextTaskToRun( void ) // Stride scheduler
 {
-    TCB* pstTarget = ( TCB* ) gs_stScheduler.pstRunningTask;
+    TCB* pstTarget = NULL;
     TCB* pstTemp = NULL;
     LIST* pstList = NULL, * pstLastList = NULL;
     LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
-    QWORD qwID = -1, changed = 0;
+    QWORD qwID = -1, changed = 0; 
+    int iTaskCount = 0, j = 0; 
 
+    for( j = 0; j < 2 ; j++){
 
-    	// ³ôÀº ¿ì¼± ¼øÀ§¿¡¼­ ³·Àº ¿ì¼± ¼øÀ§±îÁö ¸®½ºÆ®¸¦ È®ÀÎÇÏ¿© ½ºÄÉÁÙ¸µÇÒ ÅÂ½ºÅ©¸¦ ¼±ÅÃ
-	    for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
-	    {
-	    	pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ]));
-	    	pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+        // ¿¿ ¿¿ ¿¿¿¿ ¿¿ ¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿¿¿ ¿¿
+        for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+        {
+            pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ])); 
+            pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+            iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) ); 
+     
+            for( int j = 0; j < iTaskCount ; j++ ){
+                pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
+                if(pstTarget->qwPass >= pstTemp->qwPass){
+                    pstTarget = pstTemp;
+                    pstLastList = pstList;
+                    pstLastLL = pstLLCur;
+                    changed = 1; 
+                }
+                pstLLCur = pstLLCur->pvNext;
+            }
 
-	        while( pstLLCur != NULL ){
-	            pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
-
-	            if(pstTarget->qwPass >= pstTemp->qwPass)
-	            {
-	                pstTarget = pstTemp;
-	                //kRemoveList(pstList, pstLLCur->qwID);
-	                
-	                pstLastList = pstList;
-	                pstLastLL = pstLLCur;
-	                changed = 1;
-	                
-					break;
-	            }
-				else{
-					pstLLCur = pstLLCur->pvNext;
-				}
-	        }
-
-	        if(pstTarget != NULL){
-	        	break;
-	        }
-	    }
-	
-	if(changed){
-		//kPrintf("[%d] changed\n", pstTarget->stLink.qwID);
-		kRemoveList(pstLastList, pstLastLL->qwID);
-	}
+        }
+        if(pstTarget != NULL)
+        {
+            break;
+        }
+    }    
+    
+    if(changed){
+        kRemoveList(pstLastList, pstLastLL->qwID);
+    }    
 
     pstTarget->qwPass += pstTarget->qwStride;
+    
     return pstTarget;
 }
 
