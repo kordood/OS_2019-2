@@ -245,37 +245,36 @@ static void kSetUpTask( TCB* pstTCB, QWORD qwFlags, QWORD qwEntryPointAddress,
     TCB* pstTemp = NULL;
     LIST* pstList = NULL, * pstLastList = NULL;
     LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
-    QWORD qwID = -1, changed = 0;
+    QWORD qwID = -1, changed = 0; 
+    int iTaskCount = 0, j = 0; 
 
-    // ³ôÀº ¿ì¼± ¼øÀ§¿¡¼­ ³·Àº ¿ì¼± ¼øÀ§±îÁö ¸®½ºÆ®¸¦ È®ÀÎÇÏ¿© ½ºÄÉÁÙ¸µÇÒ ÅÂ½ºÅ©¸¦ ¼±ÅÃ
-    for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
-	    {
-	    	pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ]));
-	    	pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+    for( j = 0; j < 2 ; j++){
 
-	        while( pstLLCur != NULL )
-	        {
-	            pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
+        // ¿¿ ¿¿ ¿¿¿¿ ¿¿ ¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿¿¿ ¿¿
+        for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+        {
+            pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ])); 
+            pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+            iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) ); 
+     
+            for( int k = 0; k < iTaskCount ; k++ ){
+                pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
+                if(pstTarget == NULL || pstTarget->qwPass >= pstTemp->qwPass){
+                    pstTarget = pstTemp;
+                    pstLastList = pstList;
+                    pstLastLL = pstLLCur;
+                    changed = 1; 
+                }
+                pstLLCur = pstLLCur->pvNext;
+            }
 
-	            if(pstTarget->qwPass >= pstTemp->qwPass)
-	            {
-	                pstTarget = pstTemp;
-	                pstLastList = pstList;
-	                pstLastLL = pstLLCur;
-	                changed = 1;
-					break;
-	            }
-				else
-				{
-					pstLLCur = pstLLCur->pvNext;
-				}
-	        }
-	        if(pstTarget != NULL)
-	        {
-	        	break;
-	        }
-	    }
-
+        }
+        if(pstTarget != NULL)
+        {
+            break;
+        }
+    }    
+    
 	if(changed)
 	{
     	pstTCB->qwPass += pstTarget->qwPass;

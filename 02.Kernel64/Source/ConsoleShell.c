@@ -943,8 +943,6 @@ static void kKillTask( const char* pcParameterBuffer )
     if( qwID != 0xFFFFFFFF )
     {
         pstTCB = kGetTCBInTCBPool( GETTCBOFFSET( qwID ) );
-        kPrintf("qwID: %x\n", pstTCB);
-    while(1);
         qwID = pstTCB->stLink.qwID;
 
         // œÃœºÅÛ Å×œºÆ®ŽÂ ÁŠ¿Ü
