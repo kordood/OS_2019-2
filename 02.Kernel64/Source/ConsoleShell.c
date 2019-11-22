@@ -1,5 +1,4 @@
-/**
- *  file    ConsoleShell.c
+/**onsoleShell.c
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
@@ -940,11 +939,12 @@ static void kKillTask( const char* pcParameterBuffer )
     {
         qwID = kAToI( vcID, 10 );
     }
-    
     // Æ¯Á€ IDžž ÁŸ·áÇÏŽÂ °æ¿ì
     if( qwID != 0xFFFFFFFF )
     {
         pstTCB = kGetTCBInTCBPool( GETTCBOFFSET( qwID ) );
+        kPrintf("qwID: %x\n", pstTCB);
+    while(1);
         qwID = pstTCB->stLink.qwID;
 
         // œÃœºÅÛ Å×œºÆ®ŽÂ ÁŠ¿Ü
@@ -1215,3 +1215,4 @@ void kProtectionfault( const char* pcParameterBuffer )
 	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
+
