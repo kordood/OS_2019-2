@@ -259,7 +259,7 @@ static void kSetUpTask( TCB* pstTCB, QWORD qwFlags, QWORD qwEntryPointAddress,
      
             for( int k = 0; k < iTaskCount ; k++ ){
                 pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
-                if(pstTarget == NULL || pstTarget->qwPass >= pstTemp->qwPass){
+                if(pstTarget == NULL || pstTarget->qwPass > pstTemp->qwPass){
                     pstTarget = pstTemp;
                     pstLastList = pstList;
                     pstLastLL = pstLLCur;
@@ -277,7 +277,7 @@ static void kSetUpTask( TCB* pstTCB, QWORD qwFlags, QWORD qwEntryPointAddress,
     
 	if(changed)
 	{
-    	pstTCB->qwPass += pstTarget->qwPass;
+    	pstTCB->qwPass = pstTarget->qwPass;
     }
     //kPrintf("Target's pass: %x stride: %x ticket: %x\n", pstTarget -> qwPass, pstTarget -> qwStride, pstTarget -> qwTicket);
 }
@@ -310,7 +310,7 @@ void kInitializeScheduler( void )
     gs_stScheduler.pstRunningTask = pstTask;
     pstTask->qwFlags = TASK_FLAGS_HIGHEST | TASK_FLAGS_PROCESS | TASK_FLAGS_SYSTEM;
     pstTask->qwParentProcessID = pstTask->stLink.qwID;
-    pstTask->pvMemoryAddress = ( void* ) 0x200000;
+    pstTask->pvMemoryAddress = ( void* ) 0x100000;
     pstTask->qwMemorySize = 0x500000;
     pstTask->pvStackAddress = ( void* ) 0x600000;
     pstTask->qwStackSize = 0x100000;

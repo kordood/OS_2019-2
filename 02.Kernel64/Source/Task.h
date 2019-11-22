@@ -81,7 +81,7 @@
 #define TASK_LOWEST_TICKET			  10
 //전체 티켓 수
 #define TICKET_MAX					  100000
-#define STRIDE_N					  1000000
+#define STRIDE_N					  1000
 
 // 태스크의 플래그
 #define TASK_FLAGS_ENDTASK            0x8000000000000000
