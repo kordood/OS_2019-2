@@ -301,6 +301,7 @@ void kInitializeScheduler( void )
 	pstTask->qwStackSize = 0x100000;
 
 	pstTask -> qwTicket = 100;
+    qwTicketCount = 100;
 	// 프로세서 사용률을 계산하는데 사용하는 자료구조 초기화
 	gs_stScheduler.qwSpendProcessorTimeInIdleTask = 0;
 	gs_stScheduler.qwProcessorLoad = 0;
@@ -419,8 +420,8 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 			if(counter > winner)
 			{
 				pstTarget = pstTemp;
-                kPrintf("winner: %d, counter: %d, qwID: 0x%Q\n", winner, counter,
-                        pstTarge->stLink.qwID);
+                kPrintf("qwID: 0x%Q, winner: %d, counter: %d\n", pstTarget->stLink.qwID,
+                        winner, counter);
 				// 스케쥴된 TCB의 LISTLINK를 LIST에서 제거해준다
 				kRemoveList(pstList, pstLinkCurr->qwID);
 				break;
@@ -839,7 +840,7 @@ BOOL kIsProcessorTimeExpired( void )
 /**
  *  태스크를 종료
  */
-BOOL kEndTask_Lottery( QWORD qwTaskID )
+BOOL kEndTask( QWORD qwTaskID )
 {
 	TCB* pstTarget;
 	BYTE bPriority;
