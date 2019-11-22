@@ -419,7 +419,8 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 			if(counter > winner)
 			{
 				pstTarget = pstTemp;
-                kPrintf
+                kPrintf("winner: %d, counter: %d, qwID: 0x%Q\n", winner, counter,
+                        pstTarge->stLink.qwID);
 				// 스케쥴된 TCB의 LISTLINK를 LIST에서 제거해준다
 				kRemoveList(pstList, pstLinkCurr->qwID);
 				break;
