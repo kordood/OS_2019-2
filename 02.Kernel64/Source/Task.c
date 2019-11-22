@@ -460,13 +460,14 @@ static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
     TCB* pstTemp = NULL;
     LIST* pstList = NULL, * pstLastList = NULL;
     LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
-    QWORD qwID = -1, changed = 0; 
-    int iTaskCount = 0, j = 0; 
+    QWORD qwID = -1; 
+    int iTaskCount = 0; 
+	char changed = 0;
 
-    for( j = 0; j < 2 ; j++){
+    for( int j = 0; j < 2 ; j++){
 
         // ¿¿ ¿¿ ¿¿¿¿ ¿¿ ¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿¿¿ ¿¿
-        for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+        for( int i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
         {
             pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ])); 
             pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
