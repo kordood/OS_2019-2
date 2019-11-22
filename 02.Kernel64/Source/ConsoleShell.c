@@ -911,6 +911,7 @@ static void kShowTaskList( const char* pcParameterBuffer )
                      pstTCB->qwFlags, kGetListCount( &( pstTCB->stChildThreadList ) ) );
             kPrintf( "    Parent PID[0x%Q], Memory Address[0x%Q], Size[0x%Q]\n",
                     pstTCB->qwParentProcessID, pstTCB->pvMemoryAddress, pstTCB->qwMemorySize );
+			kPrintf("Link Addr: %x\n", &(pstTCB->stLink));
         }
     }
 }
@@ -943,6 +944,7 @@ static void kKillTask( const char* pcParameterBuffer )
     if( qwID != 0xFFFFFFFF )
     {
         pstTCB = kGetTCBInTCBPool( GETTCBOFFSET( qwID ) );
+		kPrintf("ID: %x\n", &(pstTCB->stLink));
         qwID = pstTCB->stLink.qwID;
 
         // œÃœºÅÛ Å×œºÆ®ŽÂ ÁŠ¿Ü

@@ -310,7 +310,7 @@ void kInitializeScheduler( void )
     gs_stScheduler.pstRunningTask = pstTask;
     pstTask->qwFlags = TASK_FLAGS_HIGHEST | TASK_FLAGS_PROCESS | TASK_FLAGS_SYSTEM;
     pstTask->qwParentProcessID = pstTask->stLink.qwID;
-    pstTask->pvMemoryAddress = ( void* ) 0x100000;
+    pstTask->pvMemoryAddress = ( void* ) 0x200000;
     pstTask->qwMemorySize = 0x500000;
     pstTask->pvStackAddress = ( void* ) 0x600000;
     pstTask->qwStackSize = 0x100000;
@@ -378,9 +378,9 @@ static TCB* kGetNextTaskToRun( void ) // Stride scheduler
             pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
             iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) ); 
      
-            for( int j = 0; j < iTaskCount ; j++ ){
+            for( int k = 0; k < iTaskCount ; k++ ){
                 pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
-                if(pstTarget->qwPass >= pstTemp->qwPass){
+                if(pstTarget == NULL || pstTarget->qwPass >= pstTemp->qwPass){
                     pstTarget = pstTemp;
                     pstLastList = pstList;
                     pstLastLL = pstLLCur;
