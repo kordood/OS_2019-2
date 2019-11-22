@@ -1,5 +1,4 @@
-/**
- *  file    Task.c
+/**k.c
  *  date    2009/02/19
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
@@ -13,6 +12,7 @@
 static SCHEDULER gs_stScheduler;
 static TCBPOOLMANAGER gs_stTCBPoolManager;
 
+static QWORD qwTicketCount;
 //==============================================================================
 //  태스크 풀과 태스크 관련
 //==============================================================================
@@ -132,7 +132,7 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
         pstTask->qwParentProcessID = pstProcess->stLink.qwID;
         pstTask->pvMemoryAddress = pstProcess->pvMemoryAddress;
         pstTask->qwMemorySize = pstProcess->qwMemorySize;
-        
+
         // 부모 프로세스의 자식 스레드 리스트에 추가
         kAddListToTail( &( pstProcess->stChildThreadList ), &( pstTask->stThreadLink ) );
     }
@@ -143,7 +143,6 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
         pstTask->pvMemoryAddress = pvMemoryAddress;
         pstTask->qwMemorySize = qwMemorySize;
     }
-    
     // 스레드의 ID를 태스크 ID와 동일하게 설정
     pstTask->stThreadLink.qwID = pstTask->stLink.qwID;    
     // 임계 영역 끝
@@ -209,6 +208,78 @@ static void kSetUpTask( TCB* pstTCB, QWORD qwFlags, QWORD qwEntryPointAddress,
     pstTCB->pvStackAddress = pvStackAddress;
     pstTCB->qwStackSize = qwStackSize;
     pstTCB->qwFlags = qwFlags;
+
+
+    // 부모 프로세스의 자식 스레드 리스트에 추가
+	BYTE bPriority = GETPRIORITY( qwFlags );//형변환 해줘야하나?
+
+	switch(bPriority){
+		case 0 :
+			pstTCB -> qwTicket = 50;
+			qwTicketCount += 50;
+			break;
+		case 1:
+			pstTCB -> qwTicket = 40;
+			qwTicketCount += 40;
+			break;
+		case 2 :
+			pstTCB -> qwTicket = 30;
+			qwTicketCount += 30;
+			break;
+		case 3 :
+			pstTCB -> qwTicket = 20;
+			qwTicketCount += 20;
+			break;
+		case 4 :
+			pstTCB -> qwTicket = 10;
+			qwTicketCount += 10;
+			break;
+		default :
+			pstTCB -> qwTicket = 1;
+			qwTicketCount += 1;
+			break;
+	}
+	pstTCB->qwStride = STRIDE_N / ( pstTCB->qwTicket );
+
+    TCB* pstTarget = NULL;
+    TCB* pstTemp = NULL;
+    LIST* pstList = NULL, * pstLastList = NULL;
+    LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
+    QWORD qwID = -1, changed = 0; 
+    int iTaskCount = 0, j = 0; 
+
+    for( j = 0; j < 2 ; j++){
+
+        // 옜 옜 옜옜 옜 옜 옜옜 옜옜 옜옜 옜옜� 옜옜 옜
+        for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+        {
+            pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ])); 
+            pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+            iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) ); 
+     
+            for( int k = 0; k < iTaskCount ; k++ ){
+                pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
+                if(pstTarget == NULL || pstTarget->qwPass > pstTemp->qwPass){
+                    pstTarget = pstTemp;
+                    pstLastList = pstList;
+                    pstLastLL = pstLLCur;
+                    changed = 1; 
+                }
+                pstLLCur = pstLLCur->pvNext;
+            }
+
+        }
+        if(pstTarget != NULL)
+        {
+            break;
+        }
+    }    
+    
+	if(changed)
+	{
+    	pstTCB->qwPass = pstTarget->qwPass;
+    }
+    //kPrintf("Target's pass: %x stride: %x ticket: %x\n", pstTarget -> qwPass, pstTarget -> qwStride, pstTarget -> qwTicket);
 }
 
 //==============================================================================
@@ -243,6 +314,8 @@ void kInitializeScheduler( void )
     pstTask->qwMemorySize = 0x500000;
     pstTask->pvStackAddress = ( void* ) 0x600000;
     pstTask->qwStackSize = 0x100000;
+	pstTask->qwTicket = 100;
+	pstTask->qwStride = STRIDE_N / ( pstTask -> qwTicket );
     
     // 프로세서 사용률을 계산하는데 사용하는 자료구조 초기화
     gs_stScheduler.qwSpendProcessorTimeInIdleTask = 0;
@@ -287,42 +360,48 @@ TCB* kGetRunningTask( void )
 /**
  *  태스크 리스트에서 다음으로 실행할 태스크를 얻음
  */
-static TCB* kGetNextTaskToRun( void )
+static TCB* kGetNextTaskToRun( void ) // Stride scheduler
 {
     TCB* pstTarget = NULL;
-    int iTaskCount, i, j;
-    
-    // 큐에 태스크가 있으나 모든 큐의 태스크가 1회씩 실행된 경우, 모든 큐가 프로세서를
-    // 양보하여 태스크를 선택하지 못할 수 있으니 NULL일 경우 한번 더 수행
-    for( j = 0 ; j < 2 ; j++ )
-    {
-        // 높은 우선 순위에서 낮은 우선 순위까지 리스트를 확인하여 스케줄링할 태스크를 선택
-        for( i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+    TCB* pstTemp = NULL;
+    LIST* pstList = NULL, * pstLastList = NULL;
+    LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
+    QWORD qwID = -1, changed = 0; 
+    int iTaskCount = 0, j = 0; 
+
+    for( j = 0; j < 2 ; j++){
+
+        // 옜 옜 옜옜 옜 옜 옜옜 옜옜 옜옜 옜옜� 옜옜 옜
+        for( QWORD i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
         {
-            iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) );
-            
-            // 만약 실행한 횟수보다 리스트의 태스크 수가 더 많으면 현재 우선 순위의
-            // 태스크를 실행함
-            if( gs_stScheduler.viExecuteCount[ i ] < iTaskCount )
-            {
-                pstTarget = ( TCB* ) kRemoveListFromHeader( 
-                                        &( gs_stScheduler.vstReadyList[ i ] ) );
-                gs_stScheduler.viExecuteCount[ i ]++;
-                break;            
+            pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ])); 
+            pstLLCur = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+            iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) ); 
+     
+            for( int k = 0; k < iTaskCount ; k++ ){
+                pstTemp =  ( TCB* ) kGetTCBInTCBPool( GETTCBOFFSET(pstLLCur->qwID));
+                if(pstTarget == NULL || pstTarget->qwPass >= pstTemp->qwPass){
+                    pstTarget = pstTemp;
+                    pstLastList = pstList;
+                    pstLastLL = pstLLCur;
+                    changed = 1; 
+                }
+                pstLLCur = pstLLCur->pvNext;
             }
-            // 만약 실행한 횟수가 더 많으면 실행 횟수를 초기화하고 다음 우선 순위로 양보함
-            else
-            {
-                gs_stScheduler.viExecuteCount[ i ] = 0;
-            }
+
         }
-        
-        // 만약 수행할 태스크를 찾았으면 종료
-        if( pstTarget != NULL )
+        if(pstTarget != NULL)
         {
             break;
         }
     }    
+    
+    if(changed){
+        kRemoveList(pstLastList, pstLastLL->qwID);
+    }    
+
+    pstTarget->qwPass += pstTarget->qwStride;
+    
     return pstTarget;
 }
 
@@ -404,7 +483,42 @@ BOOL kChangePriority( QWORD qwTaskID, BYTE bPriority )
     if( pstTarget->stLink.qwID == qwTaskID )
     {
         SETPRIORITY( pstTarget->qwFlags, bPriority );
-    }
+        //원래 티켓 수를 전체 티켓수에서 빼주고, 
+		//우선순위에 맞춰 티켓수를 더해준다.
+		switch(bPriority){
+			case 0 :
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 50;
+				qwTicketCount += 50;
+				break;
+			case 1:
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 40;
+				qwTicketCount += 40;
+				break;
+			case 2 :
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 30;
+				qwTicketCount += 30;
+				break;
+			case 3 :
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 20;
+				qwTicketCount += 20;
+				break;
+			case 4 :
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 10;
+				qwTicketCount += 10;
+				break;
+			default :
+				qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = 1;
+				qwTicketCount += 1;
+				break;
+   		}
+		pstTarget -> qwStride = STRIDE_N / ( pstTarget -> qwTicket );
+   	}
     // 실행중인 태스크가 아니면 준비 리스트에서 찾아서 해당 우선 순위의 리스트로 이동
     else
     {
@@ -440,7 +554,6 @@ void kSchedule( void )
 {
     TCB* pstRunningTask, * pstNextTask;
     BOOL bPreviousFlag;
-    
     // 전환할 태스크가 있어야 함
     if( kGetReadyTaskCount() < 1 )
     {
@@ -476,7 +589,8 @@ void kSchedule( void )
     // 삽입하고 콘텍스트 전환
     if( pstRunningTask->qwFlags & TASK_FLAGS_ENDTASK )
     {
-        kAddListToTail( &( gs_stScheduler.stWaitList ), pstRunningTask );
+    	kAddListToTail( &( gs_stScheduler.stWaitList ), pstRunningTask );
+        //kPrintf("ID: [%d] pass: %x stride: %x ticket: %x\n", pstNextTask->stLink.qwID, pstNextTask -> qwPass, pstNextTask -> qwStride, pstNextTask -> qwTicket);
         kSwitchContext( NULL, &( pstNextTask->stContext ) );
     }
     else
@@ -765,7 +879,6 @@ void kIdleTask( void )
     int i, iCount;
     QWORD qwTaskID;
     void* pstThreadLink;
-    
     // 프로세서 사용량 계산을 위해 기준 정보를 저장
     qwLastSpendTickInIdleTask = gs_stScheduler.qwSpendProcessorTimeInIdleTask;
     qwLastMeasureTickCount = kGetTickCount();
@@ -902,3 +1015,4 @@ void kHaltProcessorByLoad( void )
         kHlt();
     }
 }
+

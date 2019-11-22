@@ -1,5 +1,4 @@
-/**
- *  file    ConsoleShell.c
+/**onsoleShell.c
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
@@ -912,6 +911,8 @@ static void kShowTaskList( const char* pcParameterBuffer )
                      pstTCB->qwFlags, kGetListCount( &( pstTCB->stChildThreadList ) ) );
             kPrintf( "    Parent PID[0x%Q], Memory Address[0x%Q], Size[0x%Q]\n",
                     pstTCB->qwParentProcessID, pstTCB->pvMemoryAddress, pstTCB->qwMemorySize );
+            kPrintf( "    Ticket[0x%Q], Stride[0x%Q], Pass[0x%Q]\n",
+                    pstTCB->qwTicket, pstTCB->qwStride, pstTCB->qwPass );
         }
     }
 }
@@ -940,7 +941,6 @@ static void kKillTask( const char* pcParameterBuffer )
     {
         qwID = kAToI( vcID, 10 );
     }
-    
     // Æ¯Á€ IDžž ÁŸ·áÇÏŽÂ °æ¿ì
     if( qwID != 0xFFFFFFFF )
     {
@@ -1215,3 +1215,4 @@ void kProtectionfault( const char* pcParameterBuffer )
 	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
+
