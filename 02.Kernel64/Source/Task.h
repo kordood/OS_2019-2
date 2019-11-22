@@ -152,6 +152,7 @@ typedef struct kTaskControlBlockStruct
 	QWORD qwTicket;
 	QWORD qwStride;
 	QWORD qwPass;
+	QWORD qwSwitchCount;
 } TCB;
 
 // TCB 풀의 상태를 관리하는 자료구조
@@ -216,10 +217,10 @@ void kInitializeScheduler( void );
 void kSetRunningTask( TCB* pstTask );
 TCB* kGetRunningTask( void );
 static TCB* kGetNextTaskToRun( void );
+static TCB* kGetNextTaskToRun_Lottery( void );
 static TCB* kGetNextTaskToRun_Stride( void );
 static BOOL kAddTaskToReadyList( TCB* pstTask );
 void kSchedule( void );
-void kSchedule_Stride( void );
 BOOL kScheduleInInterrupt( void );
 void kDecreaseProcessorTime( void );
 BOOL kIsProcessorTimeExpired( void );
@@ -239,5 +240,10 @@ static TCB* kGetProcessByThread( TCB* pstThread );
 //==============================================================================
 void kIdleTask( void );
 void kHaltProcessorByLoad( void );
+
+//SSU_rand
+static unsigned long int SSU_next = 1;
+void SSU_srand(unsigned int seed);
+int SSU_rand(void);
 
 #endif /*__TASK_H__*/
