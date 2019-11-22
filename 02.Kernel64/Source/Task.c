@@ -12,7 +12,7 @@
 static SCHEDULER gs_stScheduler;
 static TCBPOOLMANAGER gs_stTCBPoolManager;
 
-static QWORD qwTicketCount;
+static QWORD gs_qwTicketCount;
 //==============================================================================
 //  ÅÂ½ºÅ© Ç®°ú ÅÂ½ºÅ© °ü·Ã
 //==============================================================================
@@ -215,28 +215,28 @@ static void kSetUpTask( TCB* pstTCB, QWORD qwFlags, QWORD qwEntryPointAddress,
 
 	switch(bPriority){
 		case 0 :
-			pstTCB -> qwTicket = 50;
-			qwTicketCount += 50;
+			pstTCB -> qwTicket = TASK_HIGHEST_TICKET;
+			gs_qwTicketCount += TASK_HIGHEST_TICKET;;
 			break;
 		case 1:
-			pstTCB -> qwTicket = 40;
-			qwTicketCount += 40;
+			pstTCB -> qwTicket = TASK_HIGH_TICKET;;
+			gs_qwTicketCount += TASK_HIGH_TICKET;;
 			break;
 		case 2 :
-			pstTCB -> qwTicket = 30;
-			qwTicketCount += 30;
+			pstTCB -> qwTicket = TASK_MEDIUM_TICKET;;
+			gs_qwTicketCount += TASK_MEDIUM_TICKET;;
 			break;
 		case 3 :
-			pstTCB -> qwTicket = 20;
-			qwTicketCount += 20;
+			pstTCB -> qwTicket = TASK_LOW_TICKET;;
+			gs_qwTicketCount += TASK_LOW_TICKET;;
 			break;
 		case 4 :
-			pstTCB -> qwTicket = 10;
-			qwTicketCount += 10;
+			pstTCB -> qwTicket = TASK_LOWEST_TICKET;;
+			gs_qwTicketCount += TASK_LOWEST_TICKET;;
 			break;
 		default :
 			pstTCB -> qwTicket = 1;
-			qwTicketCount += 1;
+			gs_qwTicketCount += 1;
 			break;
 	}
 	pstTCB->qwStride = STRIDE_N / ( pstTCB->qwTicket );
@@ -315,6 +315,7 @@ void kInitializeScheduler( void )
     pstTask->pvStackAddress = ( void* ) 0x600000;
     pstTask->qwStackSize = 0x100000;
 	pstTask->qwTicket = 100;
+	//gs_qwTicketCount = 100;
 	pstTask->qwStride = STRIDE_N / ( pstTask -> qwTicket );
     
     // ÇÁ·Î¼¼¼­ »ç¿ë·üÀ» °è»êÇÏ´Âµ¥ »ç¿ëÇÏ´Â ÀÚ·á±¸Á¶ ÃÊ±âÈ­
@@ -360,7 +361,100 @@ TCB* kGetRunningTask( void )
 /**
  *  ÅÂ½ºÅ© ¸®½ºÆ®¿¡¼­ ´ÙÀ½À¸·Î ½ÇÇàÇÒ ÅÂ½ºÅ©¸¦ ¾òÀ½
  */
-static TCB* kGetNextTaskToRun( void ) // Stride scheduler
+/*
+static TCB* kGetNextTaskToRun( void )
+{
+    TCB* pstTarget = NULL;
+    int iTaskCount, i, j;
+    
+    // Å¥¿¡ ÅÂ½ºÅ©°¡ ÀÖÀ¸³ª ¸ðµç Å¥ÀÇ ÅÂ½ºÅ©°¡ 1È¸¾¿ ½ÇÇàµÈ °æ¿ì, ¸ðµç Å¥°¡ ÇÁ·Î¼¼¼­¸¦
+    // ¾çº¸ÇÏ¿© ÅÂ½ºÅ©¸¦ ¼±ÅÃÇÏÁö ¸øÇÒ ¼ö ÀÖÀ¸´Ï NULLÀÏ °æ¿ì ÇÑ¹ø ´õ ¼öÇà
+    for( j = 0 ; j < 2 ; j++ )
+    {
+        // ³ôÀº ¿ì¼± ¼øÀ§¿¡¼­ ³·Àº ¿ì¼± ¼øÀ§±îÁö ¸®½ºÆ®¸¦ È®ÀÎÇÏ¿© ½ºÄÉÁÙ¸µÇÒ ÅÂ½ºÅ©¸¦ ¼±ÅÃ
+        for( i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+        {
+            iTaskCount = kGetListCount( &( gs_stScheduler.vstReadyList[ i ] ) );
+            
+            // ¸¸¾à ½ÇÇàÇÑ È½¼öº¸´Ù ¸®½ºÆ®ÀÇ ÅÂ½ºÅ© ¼ö°¡ ´õ ¸¹À¸¸é ÇöÀç ¿ì¼± ¼øÀ§ÀÇ
+            // ÅÂ½ºÅ©¸¦ ½ÇÇàÇÔ
+            if( gs_stScheduler.viExecuteCount[ i ] < iTaskCount )
+            {
+                pstTarget = ( TCB* ) kRemoveListFromHeader( 
+                                        &( gs_stScheduler.vstReadyList[ i ] ) );
+                gs_stScheduler.viExecuteCount[ i ]++;
+                break;            
+            }
+            // ¸¸¾à ½ÇÇàÇÑ È½¼ö°¡ ´õ ¸¹À¸¸é ½ÇÇà È½¼ö¸¦ ÃÊ±âÈ­ÇÏ°í ´ÙÀ½ ¿ì¼± ¼øÀ§·Î ¾çº¸ÇÔ
+            else
+            {
+                gs_stScheduler.viExecuteCount[ i ] = 0;
+            }
+        }
+        
+        // ¸¸¾à ¼öÇàÇÒ ÅÂ½ºÅ©¸¦ Ã£¾ÒÀ¸¸é Á¾·á
+        if( pstTarget != NULL )
+        {
+            break;
+        }
+    }    
+    return pstTarget;
+}
+
+static TCB* kGetNextTaskToRun_Lottery( void )
+{
+	TCB* pstTarget = NULL;
+	TCB* pstTemp = NULL;
+	LIST* pstList = NULL;
+	LISTLINK* pstLinkCurr = NULL;
+	//QWORD winner = 3; //rand ¿¿ ¿¿¿¿ ¿¿¿¿
+
+	BYTE kSecond;
+	kReadRTCTime(NULL, NULL, &kSecond);
+	SSU_srand(kSecond);
+	//QWORD winner = SSU_rand()%100000;
+	QWORD winner = 0;
+	if(gs_qwTicketCount != 0) winner = SSU_rand()%gs_qwTicketCount;
+	//kPrintf("[%d]\n", gs_qwTicketCount);
+	//kPrintf("winner : %d\n", winner);
+	QWORD counter = 0;
+
+	// ¿¿ ¿¿ ¿¿¿¿ ¿¿ ¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿¿¿¿ ¿¿¿¿ ¿¿
+	for(int i = 0 ; i < TASK_MAXREADYLISTCOUNT ; i++ )
+	{
+		// i¿¿ ¿¿¿¿ ¿ List¿ ¿¿¿¿
+		pstList = (LIST*) (&(gs_stScheduler.vstReadyList[ i ]));
+		// ¿¿ List¿ ¿¿¿ LISTLINK¿ ¿¿¿¿
+		pstLinkCurr = (LISTLINK*) kGetHeaderFromList(&(gs_stScheduler.vstReadyList[i]));
+		// pstLinkCurr ¿¿ ¿¿¿ ¿¿¿ List¿ iterate
+		while(pstLinkCurr != NULL){
+			// qwID¿ ¿¿ TCB¿ ¿¿¿¿
+			pstTemp = kGetTCBInTCBPool( GETTCBOFFSET(pstLinkCurr->qwID));
+			// ¿¿ TCB¿ ticket ¿¿¿ counter¿ ¿¿¿¿
+			counter += pstTemp->qwTicket;
+			// counter ¿¿ winner ¿¿¿¿ ¿¿¿ ¿¿ task¿ ¿¿¿¿¿¿
+			if(counter > winner)
+			{
+				pstTarget = pstTemp;
+				// Print winner, count, qwID
+				//kPrintf("winner : %d, counter : %d, qwID : %d\n", winner, counter, pstTarget->stLink.qwID);
+				pstTarget->qwSwitchCount++;
+
+				// ¿¿¿¿ TCB¿ LISTLINK¿ LIST¿¿ ¿¿¿¿¿
+				kRemoveList(pstList, pstLinkCurr->qwID);
+				break;
+			}
+			else
+				pstLinkCurr = pstLinkCurr->pvNext;
+		}
+		// ¿¿ ¿¿¿ ¿¿¿¿ ¿¿¿¿ ¿¿
+		if(pstTarget != NULL)
+			break;
+	}
+	return pstTarget;
+}
+*/
+static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
 {
     TCB* pstTarget = NULL;
     TCB* pstTemp = NULL;
@@ -487,34 +581,34 @@ BOOL kChangePriority( QWORD qwTaskID, BYTE bPriority )
 		//¿ì¼±¼øÀ§¿¡ ¸ÂÃç Æ¼ÄÏ¼ö¸¦ ´õÇØÁØ´Ù.
 		switch(bPriority){
 			case 0 :
-				qwTicketCount -= pstTarget -> qwTicket;
-				pstTarget -> qwTicket = 50;
-				qwTicketCount += 50;
+				gs_qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = TASK_HIGHEST_TICKET;;
+				gs_qwTicketCount += TASK_HIGHEST_TICKET;;
 				break;
 			case 1:
-				qwTicketCount -= pstTarget -> qwTicket;
-				pstTarget -> qwTicket = 40;
-				qwTicketCount += 40;
+				gs_qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = TASK_HIGH_TICKET;;
+				gs_qwTicketCount += TASK_HIGH_TICKET;;
 				break;
 			case 2 :
-				qwTicketCount -= pstTarget -> qwTicket;
-				pstTarget -> qwTicket = 30;
-				qwTicketCount += 30;
+				gs_qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = TASK_MEDIUM_TICKET;;
+				gs_qwTicketCount += TASK_MEDIUM_TICKET;;
 				break;
 			case 3 :
-				qwTicketCount -= pstTarget -> qwTicket;
-				pstTarget -> qwTicket = 20;
-				qwTicketCount += 20;
+				gs_qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = TASK_LOW_TICKET;;
+				gs_qwTicketCount += TASK_LOW_TICKET;;
 				break;
 			case 4 :
-				qwTicketCount -= pstTarget -> qwTicket;
-				pstTarget -> qwTicket = 10;
-				qwTicketCount += 10;
+				gs_qwTicketCount -= pstTarget -> qwTicket;
+				pstTarget -> qwTicket = TASK_LOWEST_TICKET;;
+				gs_qwTicketCount += TASK_LOWEST_TICKET;;
 				break;
 			default :
-				qwTicketCount -= pstTarget -> qwTicket;
+				gs_qwTicketCount -= pstTarget -> qwTicket;
 				pstTarget -> qwTicket = 1;
-				qwTicketCount += 1;
+				gs_qwTicketCount += 1;
 				break;
    		}
 		pstTarget -> qwStride = STRIDE_N / ( pstTarget -> qwTicket );
@@ -566,7 +660,7 @@ void kSchedule( void )
     bPreviousFlag = kLockForSystemData();
     
     // ½ÇÇàÇÒ ´ÙÀ½ ÅÂ½ºÅ©¸¦ ¾òÀ½
-    pstNextTask = kGetNextTaskToRun();
+    pstNextTask = kGetNextTaskToRun_Stride();
     if( pstNextTask == NULL )
     {
         // ÀÓ°è ¿µ¿ª ³¡
@@ -620,7 +714,7 @@ BOOL kScheduleInInterrupt( void )
     bPreviousFlag = kLockForSystemData();
     
     // ÀüÈ¯ÇÒ ÅÂ½ºÅ©°¡ ¾øÀ¸¸é Á¾·á
-    pstNextTask = kGetNextTaskToRun();
+    pstNextTask = kGetNextTaskToRun_Stride();
     if( pstNextTask == NULL )
     {
         // ÀÓ°è ¿µ¿ª ³¡
@@ -1016,3 +1110,12 @@ void kHaltProcessorByLoad( void )
     }
 }
 
+// SSU_rand
+SSU_srand(unsigned int seed){
+	    SSU_next = seed;
+}
+
+int SSU_rand(void){
+	    SSU_next = (SSU_next * 1103515245 + 5571031)>>16;
+		    return SSU_next;
+}
