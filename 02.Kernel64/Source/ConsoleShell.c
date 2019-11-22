@@ -39,15 +39,15 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "testmutex", "Test Mutex Function", kTestMutex },
         { "testthread", "Test Thread And Process Function", kTestThread },
         { "showmatrix", "Show Matrix Screen", kShowMatrix },	
-	{ "strcat", "String Cat(dummy)", kDummy },
-	{ "stra", "String (dummy)", kDummy },
-	{ "strcbat", "String (dummy)", kDummy },
-	{ "strcact", "String (dummy)", kDummy },
-	{ "strcats", "String (dummy)", kDummy },
-	{ "strcp", "String Copy(dummy)", kDummy },
-	{ "rm", "Remove File(dummy)", kDummy },
+//	{ "strcat", "String Cat(dummy)", kDummy },
+//	{ "stra", "String (dummy)", kDummy },
+//	{ "strcbat", "String (dummy)", kDummy },
+//	{ "strcact", "String (dummy)", kDummy },
+//	{ "strcats", "String (dummy)", kDummy },
+//	{ "strcp", "String Copy(dummy)", kDummy },
+//	{ "rm", "Remove File(dummy)", kDummy },
 //	{ "rmdir", "Remove Directory(dummy)", kDummy },
-	{ "pwd", "Present Working Directory(dummy)", kDummy },
+//	{ "pwd", "Present Working Directory(dummy)", kDummy },
     { "pagefault", "Cause page fault", kPagefault },
     { "protfault", "Cause protection fault", kProtectionfault },
 };                                     
@@ -914,7 +914,7 @@ static void kShowTaskList( const char* pcParameterBuffer )
             /*kPrintf( "    Ticket[0x%Q], Stride[0x%Q], Pass[0x%Q]\n",
                     pstTCB->qwTicket, pstTCB->qwStride, pstTCB->qwPass );
 			*/
-			kPrintf("SwitchCount : %d, my ticket : %d\n", pstTCB->qwSwitchCount, pstTCB->qwTicket);
+			kPrintf("     pass : %d, SwitchCount : %d, my ticket : %d\n", pstTCB->qwPass, pstTCB->qwSwitchCount, pstTCB->qwTicket);
         }
     }
 }
