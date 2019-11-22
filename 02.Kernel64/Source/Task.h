@@ -226,7 +226,7 @@ void kDecreaseProcessorTime( void );
 BOOL kIsProcessorTimeExpired( void );
 static TCB* kRemoveTaskFromReadyList( QWORD qwTaskID );
 BOOL kChangePriority( QWORD qwID, BYTE bPriority );
-BOOL kEndTask( QWORD qwTaskID );
+BOOL kEndTask_Lottery( QWORD qwTaskID );
 void kExitTask( void );
 int kGetReadyTaskCount( void );
 int kGetTaskCount( void );

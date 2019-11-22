@@ -140,8 +140,8 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 		//priority에 따라 티켓 수를 다르게 배분한다.
 		BYTE bPriority = (qwFlags) & 0xFF;//형변환 해줘야하나?
 
-		kPrintf("\nqwFlags : [%Q]", qwFlags);
-		kPrintf("\nbPriority : [%d]\n", bPriority);
+		//kPrintf("\nqwFlags : [%Q]", qwFlags);
+		//kPrintf("\nbPriority : [%d]\n", bPriority);
 		switch(bPriority){
 			case 0 :
 				pstTask -> qwTicket = 50;
@@ -419,6 +419,7 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 			if(counter > winner)
 			{
 				pstTarget = pstTemp;
+                kPrintf
 				// 스케쥴된 TCB의 LISTLINK를 LIST에서 제거해준다
 				kRemoveList(pstList, pstLinkCurr->qwID);
 				break;
@@ -651,6 +652,7 @@ void kSchedule_Lottery( void )
 
 	// 실행할 다음 태스크를 얻음
 	pstNextTask = kGetNextTaskToRun_Lottery();
+    kPrintf("\n TCB id: 0x%Q\n", pstNextTask->stLink.qwID);
 	//kPrintf("\n TCB id : 0x%Q\n",pstNextTask->stLink.qwID);
 	if( pstNextTask == NULL )
 	{
@@ -836,7 +838,7 @@ BOOL kIsProcessorTimeExpired( void )
 /**
  *  태스크를 종료
  */
-BOOL kEndTask( QWORD qwTaskID )
+BOOL kEndTask_Lottery( QWORD qwTaskID )
 {
 	TCB* pstTarget;
 	BYTE bPriority;
