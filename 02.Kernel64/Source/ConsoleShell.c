@@ -644,7 +644,7 @@ static void kWaitUsingPIT( const char* pcParameterBuffer )
     kEnableInterrupt();
     kPrintf( "%d ms Sleep Complete\n", lMillisecond );
     
-    / 타이머 복원
+    // 타이머 복원
     kInitializePIT( MSTOCOUNT( 1 ), TRUE );
 }
 
