@@ -245,8 +245,9 @@ static void kSetUpTask( TCB* pstTCB, QWORD qwFlags, QWORD qwEntryPointAddress,
 	TCB* pstTemp = NULL;
 	LIST* pstList = NULL, * pstLastList = NULL;
 	LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
-	QWORD qwID = -1, changed = 0; 
-	int iTaskCount = 0, j = 0; 
+	QWORD qwID = -1; 
+	int iTaskCount = 0; 
+	char j = 0, changed = 0;
 
 	for( j = 0; j < 2 ; j++){
 
@@ -460,8 +461,9 @@ static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
 	TCB* pstTemp = NULL;
 	LIST* pstList = NULL, * pstLastList = NULL;
 	LISTLINK* pstLLCur = NULL, * pstLastLL = NULL;
-	QWORD qwID = -1, changed = 0; 
-	int iTaskCount = 0, j = 0; 
+	QWORD qwID = -1; 
+	int iTaskCount = 0; 
+	char changed = 0, j = 0;
 
 	for( j = 0; j < 2 ; j++){
 
@@ -580,34 +582,6 @@ BOOL kChangePriority( QWORD qwTaskID, BYTE bPriority )
 		SETPRIORITY( pstTarget->qwFlags, bPriority );
 		//???? Æ¼?? ???? ??Ã¼ Æ¼?Ï¼ö¿¡¼? ???Ö°?, 
 		//?ì¼±??À§?? ???? Æ¼?Ï¼??? ?????Ø´?.
-		gs_qwTicketCount -= pstTarget -> qwTicket;
-		switch(bPriority){
-			case 0 :
-				pstTarget -> qwTicket = TASK_HIGHEST_TICKET;
-				gs_qwTicketCount += TASK_HIGHEST_TICKET;
-				break;
-			case 1:
-				pstTarget -> qwTicket = TASK_HIGH_TICKET;
-				gs_qwTicketCount += TASK_HIGH_TICKET;
-				break;
-			case 2 :
-				pstTarget -> qwTicket = TASK_MEDIUM_TICKET;
-				gs_qwTicketCount += TASK_MEDIUM_TICKET;
-				break;
-			case 3 :
-				pstTarget -> qwTicket = TASK_LOW_TICKET;
-				gs_qwTicketCount += TASK_LOW_TICKET;
-				break;
-			case 4 :
-				pstTarget -> qwTicket = TASK_LOWEST_TICKET;
-				gs_qwTicketCount += TASK_LOWEST_TICKET;
-				break;
-			default :
-				pstTarget -> qwTicket = 1;
-				gs_qwTicketCount += 1;
-				break;
-		}
-		pstTarget -> qwStride = STRIDE_N / ( pstTarget -> qwTicket );
 	}
 	// ???????? ?Â½?Å©?? ?Æ´Ï¸? ?Øº? ????Æ®???? Ã£?Æ¼? ?Ø´? ?ì¼± ??À§?? ????Æ®?? ?Ìµ?
 	else
@@ -621,72 +595,44 @@ BOOL kChangePriority( QWORD qwTaskID, BYTE bPriority )
 			if( pstTarget != NULL )
 			{
 				// ?ì¼± ??À§?? ??Á¤
-				gs_qwTicketCount -= pstTarget -> qwTicket;
 				SETPRIORITY( pstTarget->qwFlags, bPriority );
-				switch(bPriority){
-					case 0 :
-						pstTarget -> qwTicket = TASK_HIGHEST_TICKET;
-						gs_qwTicketCount += TASK_HIGHEST_TICKET;
-						break;
-					case 1:
-						pstTarget -> qwTicket = TASK_HIGH_TICKET;
-						gs_qwTicketCount += TASK_HIGH_TICKET;
-						break;
-					case 2 :
-						pstTarget -> qwTicket = TASK_MEDIUM_TICKET;
-						gs_qwTicketCount += TASK_MEDIUM_TICKET;
-						break;
-					case 3 :
-						pstTarget -> qwTicket = TASK_LOW_TICKET;
-						gs_qwTicketCount += TASK_LOW_TICKET;
-						break;
-					case 4 :
-						pstTarget -> qwTicket = TASK_LOWEST_TICKET;
-						gs_qwTicketCount += TASK_LOWEST_TICKET;
-						break;
-					default :
-						pstTarget -> qwTicket = 1;
-						gs_qwTicketCount += 1;
-						break;
-				}
-		pstTarget -> qwStride = STRIDE_N / ( pstTarget -> qwTicket );
 			}
 		}
 		else
 		{
 			// ?ì¼± ??À§?? ??Á¤?Ï°? ?Øº? ????Æ®?? ?Ù½? ????
-			gs_qwTicketCount -= pstTarget -> qwTicket;
 			SETPRIORITY( pstTarget->qwFlags, bPriority );
-			switch(bPriority){
-				case 0 :
-					pstTarget -> qwTicket = TASK_HIGHEST_TICKET;
-					gs_qwTicketCount += TASK_HIGHEST_TICKET;
-					break;
-				case 1:
-					pstTarget -> qwTicket = TASK_HIGH_TICKET;
-					gs_qwTicketCount += TASK_HIGH_TICKET;
-					break;
-				case 2 :
-					pstTarget -> qwTicket = TASK_MEDIUM_TICKET;
-					gs_qwTicketCount += TASK_MEDIUM_TICKET;
-					break;
-				case 3 :
-					pstTarget -> qwTicket = TASK_LOW_TICKET;
-					gs_qwTicketCount += TASK_LOW_TICKET;
-					break;
-				case 4 :
-					pstTarget -> qwTicket = TASK_LOWEST_TICKET;
-					gs_qwTicketCount += TASK_LOWEST_TICKET;
-					break;
-				default :
-					pstTarget -> qwTicket = 1;
-					gs_qwTicketCount += 1;
-					break;
-			}
-		pstTarget -> qwStride = STRIDE_N / ( pstTarget -> qwTicket );
 			kAddTaskToReadyList( pstTarget );
 		}
 	}
+	gs_qwTicketCount -= pstTarget -> qwTicket;
+	switch(bPriority){
+		case 0 :
+			pstTarget -> qwTicket = TASK_HIGHEST_TICKET;
+			gs_qwTicketCount += TASK_HIGHEST_TICKET;
+			break;
+			case 1:
+			pstTarget -> qwTicket = TASK_HIGH_TICKET;
+			gs_qwTicketCount += TASK_HIGH_TICKET;
+			break;
+		case 2 :
+			pstTarget -> qwTicket = TASK_MEDIUM_TICKET;
+			gs_qwTicketCount += TASK_MEDIUM_TICKET;
+			break;
+		case 3 :
+			pstTarget -> qwTicket = TASK_LOW_TICKET;
+			gs_qwTicketCount += TASK_LOW_TICKET;
+			break;
+			case 4 :
+			pstTarget -> qwTicket = TASK_LOWEST_TICKET;
+			gs_qwTicketCount += TASK_LOWEST_TICKET;
+			break;
+			default :
+			pstTarget -> qwTicket = 1;
+			gs_qwTicketCount += 1;
+			break;
+		}
+		pstTarget -> qwStride = STRIDE_N / ( pstTarget -> qwTicket );
 	// ?Ó°? ???? ??
 	kUnlockForSystemData( bPreviousFlag );
 	return TRUE;    

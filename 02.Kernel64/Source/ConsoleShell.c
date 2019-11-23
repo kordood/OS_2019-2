@@ -79,6 +79,8 @@ void kStartConsoleShell( void )
 
     // ÇÁ·ÒÇÁÆ® Ãâ·Â
     kPrintf( CONSOLESHELL_PROMPTMESSAGE );
+	//kExecuteCommand("createtask 2 3");
+	kExecuteCommand("createtask 3");
     
     while( 1 )
     {
@@ -824,6 +826,12 @@ static void kCreateTestTask( const char* pcParameterBuffer )
         kPrintf( "Task1 %d Created\n", i );
         break;
         
+	case 3:
+        kCreateTask( TASK_FLAGS_HIGHEST | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+        kCreateTask( TASK_FLAGS_MEDIUM | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+        kCreateTask( TASK_FLAGS_LOWEST | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+		break;
+
     // ÅžÀÔ 2 ÅÂœºÅ© »ýŒº
     case 2:
     default:
