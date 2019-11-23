@@ -1181,14 +1181,5 @@ int SSU_rand(void){
 	return SSU_next;
 }
 
-// SSU_rand
-SSU_srand(unsigned int seed){
-	    SSU_next = seed;
-}
-
-int SSU_rand(void){
-	    SSU_next = (SSU_next * 1103515245 + 5571031)>>16;
-		    return SSU_next;
-}
 
 

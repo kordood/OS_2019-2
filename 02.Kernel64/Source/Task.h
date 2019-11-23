@@ -221,7 +221,6 @@ static TCB* kGetNextTaskToRun_Lottery( void );
 static TCB* kGetNextTaskToRun_Stride( void );
 static BOOL kAddTaskToReadyList( TCB* pstTask );
 void kSchedule( void );
-void kSchedule_Lottery( void );
 BOOL kScheduleInInterrupt( void );
 BOOL kScheduleInInterrupt_Lottery( void );
 void kDecreaseProcessorTime( void );
