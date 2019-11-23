@@ -222,7 +222,6 @@ static TCB* kGetNextTaskToRun_Stride( void );
 static BOOL kAddTaskToReadyList( TCB* pstTask );
 void kSchedule( void );
 BOOL kScheduleInInterrupt( void );
-BOOL kScheduleInInterrupt_Lottery( void );
 void kDecreaseProcessorTime( void );
 BOOL kIsProcessorTimeExpired( void );
 static TCB* kRemoveTaskFromReadyList( QWORD qwTaskID );

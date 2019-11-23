@@ -1027,8 +1027,7 @@ static void kPrintNumberTask( void )
     qwTickCount = kGetTickCount();
     while( ( kGetTickCount() - qwTickCount ) < 50 )
     {
-	kSchedule();
-        //kSchedule();
+        kSchedule();
     }    
     
     // 루프를 돌면서 숫자를 출력
@@ -1049,8 +1048,7 @@ static void kPrintNumberTask( void )
     qwTickCount = kGetTickCount();
     while( ( kGetTickCount() - qwTickCount ) < 1000 )
     {
-	kSchedule();
-        //kSchedule();
+        kSchedule();
     }    
     
     // 태스크 종료
@@ -1229,3 +1227,4 @@ void kProtectionfault( const char* pcParameterBuffer )
 	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
+
