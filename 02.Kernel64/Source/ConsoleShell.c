@@ -1,8 +1,8 @@
-/**onsoleShell.c
+onsoleShell.c
  *  date    2009/01/31
  *  author  kkamagui 
  *          Copyright(c)2008 All rights reserved by kkamagui
- *  brief   ÄÜŒÖ ŒÐ¿¡ °ü·ÃµÈ ŒÒœº ÆÄÀÏ
+ *  brief   콘솔 셸에 관련된 소스 파일
  */
 
 #include "ConsoleShell.h"
@@ -16,7 +16,7 @@
 #include "Task.h"
 #include "Synchronization.h"
 
-// Ä¿žÇµå Å×ÀÌºí Á€ÀÇ
+// 커맨드 테이블 정의
 SHELLCOMMANDENTRY gs_vstCommandTable[] =
 {
         { "help", "Show Help", kHelp },
@@ -39,25 +39,25 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "testmutex", "Test Mutex Function", kTestMutex },
         { "testthread", "Test Thread And Process Function", kTestThread },
         { "showmatrix", "Show Matrix Screen", kShowMatrix },	
-	{ "strcat", "String Cat(dummy)", kDummy },
-	{ "stra", "String (dummy)", kDummy },
-	{ "strcbat", "String (dummy)", kDummy },
-	{ "strcact", "String (dummy)", kDummy },
-	{ "strcats", "String (dummy)", kDummy },
-	{ "strcp", "String Copy(dummy)", kDummy },
-	{ "rm", "Remove File(dummy)", kDummy },
+//	{ "strcat", "String Cat(dummy)", kDummy },
+//	{ "stra", "String (dummy)", kDummy },
+//	{ "strcbat", "String (dummy)", kDummy },
+//	{ "strcact", "String (dummy)", kDummy },
+//	{ "strcats", "String (dummy)", kDummy },
+//	{ "strcp", "String Copy(dummy)", kDummy },
+//	{ "rm", "Remove File(dummy)", kDummy },
 //	{ "rmdir", "Remove Directory(dummy)", kDummy },
-	{ "pwd", "Present Working Directory(dummy)", kDummy },
+//	{ "pwd", "Present Working Directory(dummy)", kDummy },
     { "pagefault", "Cause page fault", kPagefault },
     { "protfault", "Cause protection fault", kProtectionfault },
 };                                     
 
 int tabflag = 0;
-//==============================================================================
-//  œÇÁŠ ŒÐÀ» ±žŒºÇÏŽÂ ÄÚµå
+//=============================================================================
+//  실제 셸을 구성하는 코드
 //==============================================================================
 /**
- *  ŒÐÀÇ žÞÀÎ ·çÇÁ
+ *  셸의 메인 루프
  */
 void kStartConsoleShell( void )
 {
@@ -66,7 +66,7 @@ void kStartConsoleShell( void )
     BYTE bKey;
     int iCursorX, iCursorY;
 
-	// ¸í·É¹® 10°³ ÀúÀå¿ë list »ý¼º
+	// 명령문 10개 저장용 list 생성
 	DoubleLinkedList spdll;
 	DoubleLinkedList* spDLL = CreateLinkedList(&spdll);
 	int iCNT = 0;
@@ -77,8 +77,10 @@ void kStartConsoleShell( void )
 	int DownOn = 0;
 	int UpOn = 0;
 
-    // ÇÁ·ÒÇÁÆ® Ãâ·Â
+    // 프롬프트 출력
     kPrintf( CONSOLESHELL_PROMPTMESSAGE );
+	//kExecuteCommand("createtask 2 3");
+	kExecuteCommand("createtask 3");
     
     while( 1 )
     {
@@ -86,16 +88,16 @@ void kStartConsoleShell( void )
 			DownOn = 0;
 			UPnDOWN = 0;
 		}
-        // Å°°¡ ŒöœÅµÉ ¶§±îÁö Žë±â
+        // 키가 수신될 때까지 대기
         bKey = kGetCh();
-        // Backspace Å° Ã³ž®
+        // Backspace 키 처리
         if( bKey == KEY_BACKSPACE )
         {
 			tabflag = 0;
             if( iCommandBufferIndex > 0 )
             {
-                // ÇöÀç Ä¿Œ­ À§Ä¡žŠ ŸòŸîŒ­ ÇÑ ¹®ÀÚ ŸÕÀž·Î ÀÌµ¿ÇÑ ŽÙÀœ °ø¹éÀ» Ãâ·ÂÇÏ°í 
-                // Ä¿žÇµå ¹öÆÛ¿¡Œ­ ž¶Áöž· ¹®ÀÚ »èÁŠ
+                // 현재 커서 위치를 얻어서 한 문자 앞으로 이동한 다음 공백을 출력하고 
+		// 커맨드 버퍼에서 마지막 문자 삭제
                 kGetCursor( &iCursorX, &iCursorY );
                 kPrintStringXY( iCursorX - 1, iCursorY, " " );
                 kSetCursor( iCursorX - 1, iCursorY );
@@ -109,7 +111,7 @@ void kStartConsoleShell( void )
 				}
             }
         }
-        // ¿£ÅÍ Å° Ã³ž®
+        // 엔터 키 처리
         else if( bKey == KEY_ENTER )
         {
 			tabflag = 0;
@@ -121,13 +123,13 @@ void kStartConsoleShell( void )
             if( iCommandBufferIndex > 0 )
             {
 				kMemCpy(&data[iCNT%10], vcCommandBuffer, iCommandBufferIndex+1);
-                // Ä¿žÇµå ¹öÆÛ¿¡ ÀÖŽÂ ží·ÉÀ» œÇÇà
+                // 커맨드 버퍼에 있는 명령을 실행
                 vcCommandBuffer[ iCommandBufferIndex ] = '\0';
                 kExecuteCommand( vcCommandBuffer );
             }
             
 			if(iCommandBufferIndex > 0){
-				//¸í·É¹®À» DoubleLinkedList¿¡ »ðÀÔ
+				//명령문을 DoubleLinkedList에 삽입
 				if(iCNT >= 10){
 					DownOn = 0;
 					Pop_Front(spDLL);
@@ -141,18 +143,19 @@ void kStartConsoleShell( void )
 				++iCNT;
 			}
 
-            // ÇÁ·ÒÇÁÆ® Ãâ·Â ¹× Ä¿žÇµå ¹öÆÛ ÃÊ±âÈ­
+            // 프롬프트 출력 및 커맨드 버퍼 초기화
             kPrintf( "%s", CONSOLESHELL_PROMPTMESSAGE );            
             kMemSet( vcCommandBuffer, '\0', CONSOLESHELL_MAXCOMMANDBUFFERCOUNT );
             iCommandBufferIndex = 0;
         }
-        // œÃÇÁÆ® Å°, CAPS Lock, NUM Lock, Scroll LockÀº ¹«œÃ
+        // 시프트 키, CAPS Lock, NUM Lock, Scroll Lock은 무시
         else if( ( bKey == KEY_LSHIFT ) || ( bKey == KEY_RSHIFT ) ||
                  ( bKey == KEY_CAPSLOCK ) || ( bKey == KEY_NUMLOCK ) ||
                  ( bKey == KEY_SCROLLLOCK ) )
         {
 			tabflag = 0;
         }
+	    	// 위로 가면 과거 명령어 출력
 		else if((bKey == KEY_UP) || (bKey == KEY_DOWN)){
 			if(bKey == KEY_UP){
 				if(UPnDOWN > 0) DownOn = 1;
@@ -375,7 +378,7 @@ void kExecuteTab( char* pcCommandBuffer, int* iCommandBufferIndex, int tabflag )
 }
 
 /*
- *  Ä¿žÇµå ¹öÆÛ¿¡ ÀÖŽÂ Ä¿žÇµåžŠ ºñ±³ÇÏ¿© ÇØŽç Ä¿žÇµåžŠ Ã³ž®ÇÏŽÂ ÇÔŒöžŠ ŒöÇà
+ *  커맨드 버퍼에 있는 커맨드를 비교하여 해당 커맨드를 처리하는 함수를 수행
  */
 void kExecuteCommand( const char* pcCommandBuffer )
 {
@@ -383,7 +386,7 @@ void kExecuteCommand( const char* pcCommandBuffer )
     int iCommandBufferLength, iCommandLength;
     int iCount;
     
-    // °ø¹éÀž·Î ±žºÐµÈ Ä¿žÇµåžŠ ÃßÃâ
+    // 공백으로 구분된 커맨드를 추출
     iCommandBufferLength = kStrLen( pcCommandBuffer );
     for( iSpaceIndex = 0 ; iSpaceIndex < iCommandBufferLength ; iSpaceIndex++ )
     {
@@ -393,12 +396,12 @@ void kExecuteCommand( const char* pcCommandBuffer )
         }
     }
     
-    // Ä¿žÇµå Å×ÀÌºíÀ» °Ë»çÇØŒ­ µ¿ÀÏÇÑ ÀÌž§ÀÇ Ä¿žÇµå°¡ ÀÖŽÂÁö È®ÀÎ
+    // 커맨드 테이블을 검사해서 동일한 이름의 커맨드가 있는지 확인
     iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
     for( i = 0 ; i < iCount ; i++ )
     {
         iCommandLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
-        // Ä¿žÇµåÀÇ ±æÀÌ¿Í ³»¿ëÀÌ ¿ÏÀüÈ÷ ÀÏÄ¡ÇÏŽÂÁö °Ë»ç
+        // 커맨드의 길이와 내용이 완전히 일치하는지 검사
         if( ( iCommandLength == iSpaceIndex ) &&
             ( kMemCmp( gs_vstCommandTable[ i ].pcCommand, pcCommandBuffer,
                        iSpaceIndex ) == 0 ) )
@@ -408,7 +411,7 @@ void kExecuteCommand( const char* pcCommandBuffer )
         }
     }
 
-    // ž®œºÆ®¿¡Œ­ Ã£À» Œö ŸøŽÙžé ¿¡·¯ Ãâ·Â
+    // 리스트에서 찾을 수 없다면 에러 출력
     if( i >= iCount )
     {
         kPrintf( "'%s' is not found.\n", pcCommandBuffer );
@@ -416,7 +419,7 @@ void kExecuteCommand( const char* pcCommandBuffer )
 }
 
 /**
- *  ÆÄ¶ó¹ÌÅÍ ÀÚ·á±žÁ¶žŠ ÃÊ±âÈ­
+ *  파라미터 자료구조를 초기화
  */
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter )
 {
@@ -426,20 +429,20 @@ void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter )
 }
 
 /**
- *  °ø¹éÀž·Î ±žºÐµÈ ÆÄ¶ó¹ÌÅÍÀÇ ³»¿ë°ú ±æÀÌžŠ ¹ÝÈ¯
+ *  공백으로 구분된 파라미터의 내용과 길이를 반환
  */
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter )
 {
     int i;
     int iLength;
 
-    // Žõ ÀÌ»ó ÆÄ¶ó¹ÌÅÍ°¡ ŸøÀžžé ³ª°š
+    // 더 이상 파라미터가 없으면 나감
     if( pstList->iLength <= pstList->iCurrentPosition )
     {
         return 0;
     }
     
-    // ¹öÆÛÀÇ ±æÀÌžžÅ­ ÀÌµ¿ÇÏžéŒ­ °ø¹éÀ» °Ë»ö
+    // 버퍼의 길이만큼 이동하면서 공백을 검색
     for( i = pstList->iCurrentPosition ; i < pstList->iLength ; i++ )
     {
         if( pstList->pcBuffer[ i ] == ' ' )
@@ -448,21 +451,21 @@ int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter )
         }
     }
     
-    // ÆÄ¶ó¹ÌÅÍžŠ º¹»çÇÏ°í ±æÀÌžŠ ¹ÝÈ¯
+    // 파라미터를 복사하고 길이를 반환
     kMemCpy( pcParameter, pstList->pcBuffer + pstList->iCurrentPosition, i );
     iLength = i - pstList->iCurrentPosition;
     pcParameter[ iLength ] = '\0';
 
-    // ÆÄ¶ó¹ÌÅÍÀÇ À§Ä¡ Ÿ÷µ¥ÀÌÆ®
+    // 파라미터의 위치 업데이트
     pstList->iCurrentPosition += iLength + 1;
     return iLength;
 }
     
 //==============================================================================
-//  Ä¿žÇµåžŠ Ã³ž®ÇÏŽÂ ÄÚµå
+//  커맨드를 처리하는 코드
 //==============================================================================
 /**
- *  ŒÐ µµ¿òž»À» Ãâ·Â
+ *  셸 도움말을 출력
  */
 static void kHelp( const char* pcCommandBuffer )
 {
@@ -478,7 +481,7 @@ static void kHelp( const char* pcCommandBuffer )
     
     iCount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
 
-    // °¡Àå ±ä Ä¿žÇµåÀÇ ±æÀÌžŠ °è»ê
+    // 가장 긴 커맨드의 길이를 계산
     for( i = 0 ; i < iCount ; i++ )
     {
         iLength = kStrLen( gs_vstCommandTable[ i ].pcCommand );
@@ -488,7 +491,7 @@ static void kHelp( const char* pcCommandBuffer )
         }
     }
     
-    // µµ¿òž» Ãâ·Â
+    // 도움말 출력
     for( i = 0 ; i < iCount ; i++ )
     {
         kPrintf( "%s", gs_vstCommandTable[ i ].pcCommand );
@@ -499,25 +502,26 @@ static void kHelp( const char* pcCommandBuffer )
 }
 
 /**
- *  È­žéÀ» Áö¿ò 
+ *  화면을 지움 
  */
 static void kCls( const char* pcParameterBuffer )
 {
-    // žÇ À­ÁÙÀº µð¹ö±ë ¿ëÀž·Î »ç¿ëÇÏ¹Ç·Î È­žéÀ» Áö¿î ÈÄ, ¶óÀÎ 1·Î Ä¿Œ­ ÀÌµ¿
+    // 맨 윗줄은 디버깅 용으로 사용하므로 화면을 지운 후, 라인 1로 커서 이동
     kClearScreen();
     kSetCursor( 0, 1 );
 }
 
 /**
- *  ÃÑ žÞžðž® Å©±âžŠ Ãâ·Â
+ *  총 메모리 크기를 출력
  */
 static void kShowTotalRAMSize( const char* pcParameterBuffer )
 {
     kPrintf( "Total RAM Size = %d MB\n", kGetTotalRAMSize() );
 }
 
+
 /**
- *  ¹®ÀÚ¿­·Î µÈ ŒýÀÚžŠ ŒýÀÚ·Î º¯È¯ÇÏ¿© È­žé¿¡ Ãâ·Â
+ *  문자열로 된 숫자를 숫자로 변환하여 화면에 출력
  */
 static void kStringToDecimalHexTest( const char* pcParameterBuffer )
 {
@@ -527,25 +531,25 @@ static void kStringToDecimalHexTest( const char* pcParameterBuffer )
     int iCount = 0;
     long lValue;
     
-    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+    // 파라미터 초기화
     kInitializeParameter( &stList, pcParameterBuffer );
     
     while( 1 )
     {
-        // ŽÙÀœ ÆÄ¶ó¹ÌÅÍžŠ ±žÇÔ, ÆÄ¶ó¹ÌÅÍÀÇ ±æÀÌ°¡ 0ÀÌžé ÆÄ¶ó¹ÌÅÍ°¡ ŸøŽÂ °ÍÀÌ¹Ç·Î
-        // ÁŸ·á
+        // 다음 파라미터를 구함, 파라미터의 길이가 0이면 파라미터가 없는 것이므로
+	// 종료
         iLength = kGetNextParameter( &stList, vcParameter );
         if( iLength == 0 )
         {
             break;
         }
 
-        // ÆÄ¶ó¹ÌÅÍ¿¡ ŽëÇÑ Á€ºžžŠ Ãâ·ÂÇÏ°í 16ÁøŒöÀÎÁö 10ÁøŒöÀÎÁö ÆÇŽÜÇÏ¿© º¯È¯ÇÑ ÈÄ
-        // °á°úžŠ printf·Î Ãâ·Â
+        // 파라미터에 대한 정보를 출력하고 16진수인지 10진수인지 판단하여 변환한 후
+	// 결과를 printf로 출력
         kPrintf( "Param %d = '%s', Length = %d, ", iCount + 1, 
                  vcParameter, iLength );
 
-        // 0x·Î œÃÀÛÇÏžé 16ÁøŒö, ±×¿ÜŽÂ 10ÁøŒö·Î ÆÇŽÜ
+        // 0x로 시작하면 16진수, 그외는 10진수로 판단
         if( kMemCmp( vcParameter, "0x", 2 ) == 0 )
         {
             lValue = kAToI( vcParameter + 2, 16 );
@@ -562,20 +566,20 @@ static void kStringToDecimalHexTest( const char* pcParameterBuffer )
 }
 
 /**
- *  PCžŠ ÀçœÃÀÛ(Reboot)
+ *  PC를 재시작(Reboot)
  */
 static void kShutdown( const char* pcParamegerBuffer )
 {
     kPrintf( "System Shutdown Start...\n" );
     
-    // Å°ºžµå ÄÁÆ®·Ñ·¯žŠ ÅëÇØ PCžŠ ÀçœÃÀÛ
+    // 키보드 컨트롤러를 통해 PC를 재시작
     kPrintf( "Press Any Key To Reboot PC..." );
     kGetCh();
     kReboot();
 }
 
 /**
- *  PIT ÄÁÆ®·Ñ·¯ÀÇ Ä«¿îÅÍ 0 Œ³Á€
+ *  PIT 컨트롤러의 카운터 0 설정
  */
 static void kSetTimer( const char* pcParameterBuffer )
 {
@@ -584,10 +588,10 @@ static void kSetTimer( const char* pcParameterBuffer )
     long lValue;
     BOOL bPeriodic;
 
-    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+    // 파라미터 초기화
     kInitializeParameter( &stList, pcParameterBuffer );
     
-    // milisecond ÃßÃâ
+    // milisecond 추출
     if( kGetNextParameter( &stList, vcParameter ) == 0 )
     {
         kPrintf( "ex)settimer 10(ms) 1(periodic)\n" );
@@ -595,7 +599,7 @@ static void kSetTimer( const char* pcParameterBuffer )
     }
     lValue = kAToI( vcParameter, 10 );
 
-    // Periodic ÃßÃâ
+    // Periodic 추출
     if( kGetNextParameter( &stList, vcParameter ) == 0 )
     {
         kPrintf( "ex)settimer 10(ms) 1(periodic)\n" );
@@ -608,7 +612,7 @@ static void kSetTimer( const char* pcParameterBuffer )
 }
 
 /**
- *  PIT ÄÁÆ®·Ñ·¯žŠ Á÷Á¢ »ç¿ëÇÏ¿© ms µ¿ŸÈ Žë±â  
+ *  PIT 컨트롤러를 직접 사용하여 ms 동안 대기  
  */
 static void kWaitUsingPIT( const char* pcParameterBuffer )
 {
@@ -618,7 +622,7 @@ static void kWaitUsingPIT( const char* pcParameterBuffer )
     long lMillisecond;
     int i;
     
-    // ÆÄ¶ó¹ÌÅÍ ÃÊ±âÈ­
+    // 파라미터 초기화
     kInitializeParameter( &stList, pcParameterBuffer );
     if( kGetNextParameter( &stList, vcParameter ) == 0 )
     {
@@ -629,7 +633,7 @@ static void kWaitUsingPIT( const char* pcParameterBuffer )
     lMillisecond = kAToI( pcParameterBuffer, 10 );
     kPrintf( "%d ms Sleep Start...\n", lMillisecond );
     
-    // ÀÎÅÍ·ŽÆ®žŠ ºñÈ°ŒºÈ­ÇÏ°í PIT ÄÁÆ®·Ñ·¯žŠ ÅëÇØ Á÷Á¢ œÃ°£À» ÃøÁ€
+    /// 인터럽트를 비활성화하고 PIT 컨트롤러를 통해 직접 시간을 측정
     kDisableInterrupt();
     for( i = 0 ; i < lMillisecond / 30 ; i++ )
     {
@@ -639,12 +643,12 @@ static void kWaitUsingPIT( const char* pcParameterBuffer )
     kEnableInterrupt();
     kPrintf( "%d ms Sleep Complete\n", lMillisecond );
     
-    // ÅžÀÌžÓ º¹¿ø
+    // 타이머 복원
     kInitializePIT( MSTOCOUNT( 1 ), TRUE );
 }
 
 /**
- *  ÅžÀÓ œºÅÆÇÁ Ä«¿îÅÍžŠ ÀÐÀœ  
+ *  타임 스탬프 카운터를 읽음  
  */
 static void kReadTimeStampCounter( const char* pcParameterBuffer )
 {
@@ -655,7 +659,7 @@ static void kReadTimeStampCounter( const char* pcParameterBuffer )
 }
 
 /**
- *  ÇÁ·ÎŒŒŒ­ÀÇ ŒÓµµžŠ ÃøÁ€
+ *  프로세서의 속도를 측정
  */
 static void kMeasureProcessorSpeed( const char* pcParameterBuffer )
 {
@@ -664,7 +668,7 @@ static void kMeasureProcessorSpeed( const char* pcParameterBuffer )
         
     kPrintf( "Now Measuring." );
     
-    // 10ÃÊ µ¿ŸÈ º¯È­ÇÑ ÅžÀÓ œºÅÆÇÁ Ä«¿îÅÍžŠ ÀÌ¿ëÇÏ¿© ÇÁ·ÎŒŒŒ­ÀÇ ŒÓµµžŠ °£Á¢ÀûÀž·Î ÃøÁ€
+    // 10초 동안 변화한 타임 스탬프 카운터를 이용하여 프로세서의 속도를 간접적으로 측정
     kDisableInterrupt();    
     for( i = 0 ; i < 200 ; i++ )
     {
@@ -674,7 +678,7 @@ static void kMeasureProcessorSpeed( const char* pcParameterBuffer )
 
         kPrintf( "." );
     }
-    // ÅžÀÌžÓ º¹¿ø
+    // 타이머 복원
     kInitializePIT( MSTOCOUNT( 1 ), TRUE );    
     kEnableInterrupt();
     
@@ -682,7 +686,7 @@ static void kMeasureProcessorSpeed( const char* pcParameterBuffer )
 }
 
 /**
- *  RTC ÄÁÆ®·Ñ·¯¿¡ ÀúÀåµÈ ÀÏÀÚ ¹× œÃ°£ Á€ºžžŠ Ç¥œÃ
+ *  RTC 컨트롤러에 저장된 일자 및 시간 정보를 표시
  */
 static void kShowDateAndTime( const char* pcParameterBuffer )
 {
@@ -690,7 +694,7 @@ static void kShowDateAndTime( const char* pcParameterBuffer )
     BYTE bDayOfWeek, bDayOfMonth, bMonth;
     WORD wYear;
 
-    // RTC ÄÁÆ®·Ñ·¯¿¡Œ­ œÃ°£ ¹× ÀÏÀÚžŠ ÀÐÀœ
+    // RTC 컨트롤러에서 시간 및 일자를 읽음
     kReadRTCTime( &bHour, &bMinute, &bSecond );
     kReadRTCDate( &wYear, &bMonth, &bDayOfMonth, &bDayOfWeek );
     
@@ -700,8 +704,8 @@ static void kShowDateAndTime( const char* pcParameterBuffer )
 }
 
 /**
- *  ÅÂœºÅ© 1
- *      È­žé Å×µÎž®žŠ µ¹žéŒ­ ¹®ÀÚžŠ Ãâ·Â
+ *  태스크 1
+ *      화면 테두리를 돌면서 문자를 출력
  */
 static void kTestTask1( void )
 {
@@ -710,11 +714,11 @@ static void kTestTask1( void )
     CHARACTER* pstScreen = ( CHARACTER* ) CONSOLE_VIDEOMEMORYADDRESS;
     TCB* pstRunningTask;
     
-    // ÀÚœÅÀÇ IDžŠ ŸòŸîŒ­ È­žé ¿ÀÇÁŒÂÀž·Î »ç¿ë
+    // 자신의 ID를 얻어서 화면 오프셋으로 사용
     pstRunningTask = kGetRunningTask();
     iMargin = ( pstRunningTask->stLink.qwID & 0xFFFFFFFF ) % 10;
     
-    // È­žé ³× ±ÍÅüÀÌžŠ µ¹žéŒ­ ¹®ÀÚ Ãâ·Â
+    // 화면 네 귀퉁이를 돌면서 문자 출력
     for( j = 0 ; j < 20000 ; j++ )
     {
         switch( i )
@@ -752,12 +756,12 @@ static void kTestTask1( void )
             break;
         }
         
-        // ¹®ÀÚ ¹× »ö±ò ÁöÁ€
+        // 문자 및 색깔 지정
         pstScreen[ iY * CONSOLE_WIDTH + iX ].bCharactor = bData;
         pstScreen[ iY * CONSOLE_WIDTH + iX ].bAttribute = bData & 0x0F;
         bData++;
         
-        // ŽÙž¥ ÅÂœºÅ©·Î ÀüÈ¯
+        // 다른 태스크로 전환
         //kSchedule();
     }
 
@@ -765,8 +769,8 @@ static void kTestTask1( void )
 }
 
 /**
- *  ÅÂœºÅ© 2
- *      ÀÚœÅÀÇ IDžŠ Âü°íÇÏ¿© Æ¯Á€ À§Ä¡¿¡ ÈžÀüÇÏŽÂ ¹Ù¶÷°³ºñžŠ Ãâ·Â
+ *  태스크 2
+ *      자신의 ID를 참고하여 특정 위치에 회전하는 바람개비를 출력
  */
 static void kTestTask2( void )
 {
@@ -775,7 +779,7 @@ static void kTestTask2( void )
     TCB* pstRunningTask;
     char vcData[ 4 ] = { '-', '\\', '|', '/' };
     
-    // ÀÚœÅÀÇ IDžŠ ŸòŸîŒ­ È­žé ¿ÀÇÁŒÂÀž·Î »ç¿ë
+    // 자신의 ID를 얻어서 화면 오프셋으로 사용
     pstRunningTask = kGetRunningTask();
     iOffset = ( pstRunningTask->stLink.qwID & 0xFFFFFFFF ) * 2;
     iOffset = CONSOLE_WIDTH * CONSOLE_HEIGHT - 
@@ -783,19 +787,19 @@ static void kTestTask2( void )
 
     while( 1 )
     {
-        // ÈžÀüÇÏŽÂ ¹Ù¶÷°³ºñžŠ Ç¥œÃ
+        // 회전하는 바람개비를 표시
         pstScreen[ iOffset ].bCharactor = vcData[ i % 4 ];
-        // »ö±ò ÁöÁ€
+        // 색깔 지정
         pstScreen[ iOffset ].bAttribute = ( iOffset % 15 ) + 1;
         i++;
         
-        // ŽÙž¥ ÅÂœºÅ©·Î ÀüÈ¯
+        // 다른 태스크로 전환
         //kSchedule();
     }
 }
 
 /**
- *  ÅÂœºÅ©žŠ »ýŒºÇØŒ­ žÖÆŒ ÅÂœºÅ· ŒöÇà
+ *  태스크를 생성해서 멀티 태스킹 수행
  */
 static void kCreateTestTask( const char* pcParameterBuffer )
 {
@@ -804,14 +808,14 @@ static void kCreateTestTask( const char* pcParameterBuffer )
     char vcCount[ 30 ];
     int i;
     
-    // ÆÄ¶ó¹ÌÅÍžŠ ÃßÃâ
+    // 파라미터를 추출
     kInitializeParameter( &stList, pcParameterBuffer );
     kGetNextParameter( &stList, vcType );
     kGetNextParameter( &stList, vcCount );
 
     switch( kAToI( vcType, 10 ) )
     {
-    // ÅžÀÔ 1 ÅÂœºÅ© »ýŒº
+    // 타입 1 태스크 생성
     case 1:
         for( i = 0 ; i < kAToI( vcCount, 10 ) ; i++ )
         {    
@@ -824,7 +828,13 @@ static void kCreateTestTask( const char* pcParameterBuffer )
         kPrintf( "Task1 %d Created\n", i );
         break;
         
-    // ÅžÀÔ 2 ÅÂœºÅ© »ýŒº
+	case 3:
+        kCreateTask( TASK_FLAGS_HIGHEST | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+        kCreateTask( TASK_FLAGS_MEDIUM | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+        kCreateTask( TASK_FLAGS_LOWEST | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kTestTask2 );
+		break;
+
+    // 타입 2 태스크 생성
     case 2:
     default:
         for( i = 0 ; i < kAToI( vcCount, 10 ) ; i++ )
@@ -840,7 +850,7 @@ static void kCreateTestTask( const char* pcParameterBuffer )
 }   
 
 /**
- *  ÅÂœºÅ©ÀÇ ¿ìŒ± ŒøÀ§žŠ º¯°æ
+ *  태스크의 우선 순위를 변경
  */
 static void kChangeTaskPriority( const char* pcParameterBuffer )
 {
@@ -850,12 +860,12 @@ static void kChangeTaskPriority( const char* pcParameterBuffer )
     QWORD qwID;
     BYTE bPriority;
     
-    // ÆÄ¶ó¹ÌÅÍžŠ ÃßÃâ
+    // 파라미터를 추출
     kInitializeParameter( &stList, pcParameterBuffer );
     kGetNextParameter( &stList, vcID );
     kGetNextParameter( &stList, vcPriority );
     
-    // ÅÂœºÅ©ÀÇ ¿ìŒ± ŒøÀ§žŠ º¯°æ
+    // 태스크의 우선 순위를 변경
     if( kMemCmp( vcID, "0x", 2 ) == 0 )
     {
         qwID = kAToI( vcID + 2, 16 );
@@ -877,9 +887,8 @@ static void kChangeTaskPriority( const char* pcParameterBuffer )
         kPrintf( "Fail\n" );
     }
 }
-
 /**
- *  ÇöÀç »ýŒºµÈ žðµç ÅÂœºÅ©ÀÇ Á€ºžžŠ Ãâ·Â
+ *  현재 생성된 모든 태스크의 정보를 출력
  */
 static void kShowTaskList( const char* pcParameterBuffer )
 {
@@ -890,11 +899,11 @@ static void kShowTaskList( const char* pcParameterBuffer )
     kPrintf( "=========== Task Total Count [%d] ===========\n", kGetTaskCount() );
     for( i = 0 ; i < TASK_MAXCOUNT ; i++ )
     {
-        // TCBžŠ ±žÇØŒ­ TCB°¡ »ç¿ë ÁßÀÌžé IDžŠ Ãâ·Â
+        // TCB를 구해서 TCB가 사용 중이면 ID를 출력
         pstTCB = kGetTCBInTCBPool( i );
         if( ( pstTCB->stLink.qwID >> 32 ) != 0 )
         {
-            // ÅÂœºÅ©°¡ 10°³ Ãâ·ÂµÉ ¶§ž¶ŽÙ, °èŒÓ ÅÂœºÅ© Á€ºžžŠ Ç¥œÃÇÒÁö ¿©ºÎžŠ È®ÀÎ
+            // 태스크가 10개 출력될 때마다, 계속 태스크 정보를 표시할지 여부를 확인
             if( ( iCount != 0 ) && ( ( iCount % 10 ) == 0 ) )
             {
                 kPrintf( "Press any key to continue... ('q' is exit) : " );
@@ -914,13 +923,13 @@ static void kShowTaskList( const char* pcParameterBuffer )
             /*kPrintf( "    Ticket[0x%Q], Stride[0x%Q], Pass[0x%Q]\n",
                     pstTCB->qwTicket, pstTCB->qwStride, pstTCB->qwPass );
 			*/
-			kPrintf("SwitchCount : %d, my ticket : %d\n", pstTCB->qwSwitchCount, pstTCB->qwTicket);
+			kPrintf("     pass : %d, SwitchCount : %d, my ticket : %d\n", pstTCB->qwPass, pstTCB->qwSwitchCount, pstTCB->qwTicket);
         }
     }
 }
 
 /**
- *  ÅÂœºÅ©žŠ ÁŸ·á
+ *  태스크를 종료
  */
 static void kKillTask( const char* pcParameterBuffer )
 {
@@ -930,11 +939,11 @@ static void kKillTask( const char* pcParameterBuffer )
     TCB* pstTCB;
     int i;
     
-    // ÆÄ¶ó¹ÌÅÍžŠ ÃßÃâ
+    // 파라미터를 추출
     kInitializeParameter( &stList, pcParameterBuffer );
     kGetNextParameter( &stList, vcID );
     
-    // ÅÂœºÅ©žŠ ÁŸ·á
+    // 태스크를 종료
     if( kMemCmp( vcID, "0x", 2 ) == 0 )
     {
         qwID = kAToI( vcID + 2, 16 );
@@ -943,13 +952,13 @@ static void kKillTask( const char* pcParameterBuffer )
     {
         qwID = kAToI( vcID, 10 );
     }
-    // Æ¯Á€ IDžž ÁŸ·áÇÏŽÂ °æ¿ì
+    // 특정 ID만 종료하는 경우
     if( qwID != 0xFFFFFFFF )
     {
         pstTCB = kGetTCBInTCBPool( GETTCBOFFSET( qwID ) );
         qwID = pstTCB->stLink.qwID;
 
-        // œÃœºÅÛ Å×œºÆ®ŽÂ ÁŠ¿Ü
+        // 시스템 테스트는 제외
         if( ( ( qwID >> 32 ) != 0 ) && ( ( pstTCB->qwFlags & TASK_FLAGS_SYSTEM ) == 0x00 ) )
         {
             kPrintf( "Kill Task ID [0x%q] ", qwID );
@@ -967,7 +976,7 @@ static void kKillTask( const char* pcParameterBuffer )
             kPrintf( "Task does not exist or task is system task\n" );
         }
     }
-    // ÄÜŒÖ ŒÐ°ú À¯ÈÞ ÅÂœºÅ©žŠ ÁŠ¿ÜÇÏ°í žðµç ÅÂœºÅ© ÁŸ·á
+    // 콘솔 셸과 유휴 태스크를 제외하고 모든 태스크 종료
     else
     {
         for( i = 0 ; i < TASK_MAXCOUNT ; i++ )
@@ -975,7 +984,7 @@ static void kKillTask( const char* pcParameterBuffer )
             pstTCB = kGetTCBInTCBPool( i );
             qwID = pstTCB->stLink.qwID;
 
-            // œÃœºÅÛ Å×œºÆ®ŽÂ »èÁŠ žñ·Ï¿¡Œ­ ÁŠ¿Ü
+            // 시스템 테스트는 삭제 목록에서 제외
             if( ( ( qwID >> 32 ) != 0 ) && ( ( pstTCB->qwFlags & TASK_FLAGS_SYSTEM ) == 0x00 ) )
             {
                 kPrintf( "Kill Task ID [0x%q] ", qwID );
@@ -993,19 +1002,19 @@ static void kKillTask( const char* pcParameterBuffer )
 }
 
 /**
- *  ÇÁ·ÎŒŒŒ­ÀÇ »ç¿ë·üÀ» Ç¥œÃ
+ *  프로세서의 사용률을 표시
  */
 static void kCPULoad( const char* pcParameterBuffer )
 {
     kPrintf( "Processor Load : %d%%\n", kGetProcessorLoad() );
 }
     
-// ¹ÂÅØœº Å×œºÆ®¿ë ¹ÂÅØœº¿Í º¯Œö
+// 뮤텍스 테스트용 뮤텍스와 변수
 static MUTEX gs_stMutex;
 static volatile QWORD gs_qwAdder;
 
 /**
- *  ¹ÂÅØœºžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ©
+ *  뮤텍스를 테스트하는 태스크
  */
 static void kPrintNumberTask( void )
 {
@@ -1013,14 +1022,14 @@ static void kPrintNumberTask( void )
     int j;
     QWORD qwTickCount;
 
-    // 50ms Á€µµ Žë±âÇÏ¿© ÄÜŒÖ ŒÐÀÌ Ãâ·ÂÇÏŽÂ žÞœÃÁö¿Í °ãÄ¡Áö ŸÊµµ·Ï ÇÔ
+    // 50ms 정도 대기하여 콘솔 셸이 출력하는 메시지와 겹치지 않도록 함
     qwTickCount = kGetTickCount();
     while( ( kGetTickCount() - qwTickCount ) < 50 )
     {
         kSchedule();
     }    
     
-    // ·çÇÁžŠ µ¹žéŒ­ ŒýÀÚžŠ Ãâ·Â
+    // 루프를 돌면서 숫자를 출력
     for( i = 0 ; i < 5 ; i++ )
     {
         kLock( &( gs_stMutex ) );
@@ -1030,23 +1039,23 @@ static void kPrintNumberTask( void )
         gs_qwAdder += 1;
         kUnlock( & ( gs_stMutex ) );
     
-        // ÇÁ·ÎŒŒŒ­ ŒÒžðžŠ ŽÃž®·Á°í Ãß°¡ÇÑ ÄÚµå
+        // 프로세서 소모를 늘리려고 추가한 코드
         for( j = 0 ; j < 30000 ; j++ ) ;
     }
     
-    // žðµç ÅÂœºÅ©°¡ ÁŸ·áÇÒ ¶§±îÁö 1ÃÊ(100ms) Á€µµ Žë±â
+    // 모든 태스크가 종료할 때까지 1초(100ms) 정도 대기
     qwTickCount = kGetTickCount();
     while( ( kGetTickCount() - qwTickCount ) < 1000 )
     {
         kSchedule();
     }    
     
-    // ÅÂœºÅ© ÁŸ·á
+    // 태스크 종료
     //kExitTask();
 }
 
 /**
- *  ¹ÂÅØœºžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ© »ýŒº
+ *  뮤텍스를 테스트하는 태스크 생성
  */
 static void kTestMutex( const char* pcParameterBuffer )
 {
@@ -1054,12 +1063,12 @@ static void kTestMutex( const char* pcParameterBuffer )
     
     gs_qwAdder = 1;
     
-    // ¹ÂÅØœº ÃÊ±âÈ­
+    // 뮤텍스 초기화
     kInitializeMutex( &gs_stMutex );
     
     for( i = 0 ; i < 3 ; i++ )
     {
-        // ¹ÂÅØœºžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ©žŠ 3°³ »ýŒº
+        // 뮤텍스를 테스트하는 태스크를 3개 생성
         kCreateTask( TASK_FLAGS_LOW | TASK_FLAGS_THREAD, 0, 0, ( QWORD ) kPrintNumberTask );
     }    
     kPrintf( "Wait Util %d Task End...\n", i );
@@ -1067,7 +1076,7 @@ static void kTestMutex( const char* pcParameterBuffer )
 }
 
 /**
- *  ÅÂœºÅ© 2žŠ ÀÚœÅÀÇ œº·¹µå·Î »ýŒºÇÏŽÂ ÅÂœºÅ©
+ *  태스크 2를 자신의 스레드로 생성하는 태스크
  */
 static void kCreateThreadTask( void )
 {
@@ -1085,7 +1094,7 @@ static void kCreateThreadTask( void )
 }
 
 /**
- *  œº·¹µåžŠ Å×œºÆ®ÇÏŽÂ ÅÂœºÅ© »ýŒº
+ *  스레드를 테스트하는 태스크 생성
  */
 static void kTestThread( const char* pcParameterBuffer )
 {
@@ -1103,11 +1112,11 @@ static void kTestThread( const char* pcParameterBuffer )
     }
 }
 
-// ³­ŒöžŠ ¹ß»ýœÃÅ°±â À§ÇÑ º¯Œö
+// 난수를 발생시키기 위한 변수
 static volatile QWORD gs_qwRandomValue = 0;
 
 /**
- *  ÀÓÀÇÀÇ ³­ŒöžŠ ¹ÝÈ¯
+ *  임의의 난수를 반환
  */
 QWORD kRandom( void )
 {
@@ -1116,7 +1125,7 @@ QWORD kRandom( void )
 }
 
 /**
- *  Ã¶ÀÚžŠ Èê·¯³»ž®°Ô ÇÏŽÂ œº·¹µå
+ *  철자를 흘러내리게 하는 스레드
  */
 static void kDropCharactorThread( void )
 {
@@ -1128,7 +1137,7 @@ static void kDropCharactorThread( void )
     
     while( 1 )
     {
-        // ÀáœÃ Žë±âÇÔ
+        // 잠시 대기함
         kSleep( kRandom() % 20 );
         
         if( ( kRandom() % 20 ) < 16 )
@@ -1153,7 +1162,7 @@ static void kDropCharactorThread( void )
 }
 
 /**
- *  œº·¹µåžŠ »ýŒºÇÏ¿© žÅÆ®ž¯œº È­žéÃ³·³ ºž¿©ÁÖŽÂ ÇÁ·ÎŒŒœº
+ *  스레드를 생성하여 매트릭스 화면처럼 보여주는 프로세스
  */
 static void kMatrixProcess( void )
 {
@@ -1172,12 +1181,12 @@ static void kMatrixProcess( void )
     
     kPrintf( "%d Thread is created\n", i );
 
-    // Å°°¡ ÀÔ·ÂµÇžé ÇÁ·ÎŒŒœº ÁŸ·á
+    // 키가 입력되면 프로세스 종료
     kGetCh();
 }
 
 /**
- *  žÅÆ®ž¯œº È­žéÀ» ºž¿©ÁÜ
+ *  매트릭스 화면을 보여줌
  */
 static void kShowMatrix( const char* pcParameterBuffer )
 {
@@ -1189,7 +1198,7 @@ static void kShowMatrix( const char* pcParameterBuffer )
     {
         kPrintf( "Matrix Process [0x%Q] Create Success\n" );
 
-        // ÅÂœºÅ©°¡ ÁŸ·á µÉ ¶§±îÁö Žë±â
+        // 태스크가 종료 될 때까지 대기
         while( ( pstProcess->stLink.qwID >> 32 ) != 0 )
         {
             kSleep( 100 );
@@ -1217,4 +1226,3 @@ void kProtectionfault( const char* pcParameterBuffer )
 	faultptr = 0x1ff000;
 	*faultptr = 0xdeadbeef;
 }
-
