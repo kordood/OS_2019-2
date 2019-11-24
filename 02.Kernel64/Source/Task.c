@@ -405,6 +405,7 @@ TCB* kGetRunningTask( void )
 /**
  *  태스크 리스트에서 다음으로 실행할 태스크를 얻음
  */
+/*
 static TCB* kGetNextTaskToRun_Lottery( void )
 {
 	TCB* pstTarget = NULL;
@@ -457,8 +458,8 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 	}
 	return pstTarget;
 }
-
-/*static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
+*/
+static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
 {
 	TCB* pstTarget = NULL;
 	TCB* pstTemp = NULL;
@@ -503,7 +504,7 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 	pstTarget->qwSwitchCount++;
 
 	return pstTarget;
-}*/
+}
 
 /**
  *  태스크를 스케줄러의 준비 리스트에 삽입
@@ -662,7 +663,7 @@ void kSchedule( void )
 
 	// 실행할 다음 태스크를 얻음
 	//pstNextTask = kGetNextTaskToRun_Stride();
-	pstNextTask = kGetNextTaskToRun_Lottery();
+	pstNextTask = kGetNextTaskToRun_Stride();
 	if( pstNextTask == NULL )
 	{
 		// 임계 영역 끝
@@ -717,7 +718,7 @@ BOOL kScheduleInInterrupt( void )
 
 	// 전환할 태스크가 없으면 종료
 	//pstNextTask = kGetNextTaskToRun_Stride();
-	pstNextTask = kGetNextTaskToRun_Lottery();
+	pstNextTask = kGetNextTaskToRun_Stride();
 	if( pstNextTask == NULL )
 	{
 		// 임계 영역 끝

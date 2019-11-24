@@ -80,8 +80,12 @@ void kStartConsoleShell( void )
 
     // 프롬프트 출력
     kPrintf( CONSOLESHELL_PROMPTMESSAGE );
-	//kExecuteCommand("createtask 2 3");
-	kExecuteCommand("createtask 3");
+
+	/**
+	 * Performance evaluation func
+	 * kExecuteCommand("createtask 2 3");
+	 * kExecuteCommand("createtask 3");
+	 */
     
     while( 1 )
     {
