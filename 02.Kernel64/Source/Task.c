@@ -317,7 +317,7 @@ void kInitializeScheduler( void )
 	pstTask->pvStackAddress = ( void* ) 0x600000;
 	pstTask->qwStackSize = 0x100000;
 	pstTask->qwTicket = 100;
-	//gs_qwTicketCount = 100;
+	gs_qwTicketCount = 100;
 	pstTask->qwStride = STRIDE_N / ( pstTask -> qwTicket );
 
 	// 프로세서 사용률을 계산하는데 사용하는 자료구조 초기화
@@ -802,11 +802,12 @@ BOOL kEndTask( QWORD qwTaskID )
 
 	// 현재 실행중인 태스크이면 EndTask 비트를 설정하고 태스크를 전환
 	pstTarget = gs_stScheduler.pstRunningTask;
+	gs_qwTicketCount -= pstTarget->qwTicket; 
 	if( pstTarget->stLink.qwID == qwTaskID )
 	{
 		pstTarget->qwFlags |= TASK_FLAGS_ENDTASK;
 		SETPRIORITY( pstTarget->qwFlags, TASK_FLAGS_WAIT );
-
+		
 		// 임계 영역 끝
 		kUnlockForSystemData( bPreviousFlag );
 
