@@ -12,7 +12,7 @@
 
 01.Kernel32/Temp/
 02.Kernel64/Temp/
-04.Utility/00.ImageMaker/
+04.Utility/00.ImageMaker/ImageMaker
 
 # Prerequisites
 *.d
