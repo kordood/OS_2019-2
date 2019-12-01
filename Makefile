@@ -1,4 +1,4 @@
-all: Utility BootLoader Kernel32 Kernel64 Disk.img
+all: Utility BootLoader Kernel32 Kernel64 Disk.img HDD.img
 
 BootLoader:
 	@echo 
@@ -55,9 +55,20 @@ Utility:
 	@echo =========== Utility Build Complete ===========
 	@echo
 
+HDD.img:
+	@echo 
+	@echo =========== Disk Image Build Start ===========
+	@echo
+
+	qemu-img create HDD.img 64M
+
+	@echo 
+	@echo ============= All Build Complete =============
+	@echo 
+
 
 run:
-	qemu-system-x86_64 -monitor tcp:127.0.0.1:55555,server,nowait -L . -fda Disk.img -m 64 -localtime -M pc -rtc base=localtime	-cpu qemu64 -s
+	qemu-system-x86_64 -monitor tcp:127.0.0.1:55555,server,nowait -L . -m 64 -fda Disk.img -hda HDD.img -localtime -M pc -rtc base=localtime -cpu qemu64 -s
 	
 clean:
 	make -C 00.BootLoader clean
@@ -65,4 +76,5 @@ clean:
 	make -C 02.Kernel64 clean
 	make -C 04.Utility clean
 	rm -f Disk.img	
+	rm -f HDD.img	
 	rm -f ImageMaker.exe

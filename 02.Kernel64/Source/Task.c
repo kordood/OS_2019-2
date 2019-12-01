@@ -160,6 +160,9 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 	// 자식 스레드 리스트를 초기화
 	kInitializeList( &( pstTask->stChildThreadList ) );
 
+    // FPU »ç¿ë ¿©ºÎ¸¦ »ç¿ëÇÏÁö ¾ÊÀº °ÍÀ¸·Î ÃÊ±âÈ­
+    pstTask->bFPUUsed = FALSE;
+
 	// 임계 영역 시작
 	bPreviousFlag = kLockForSystemData();
 
@@ -317,12 +320,15 @@ void kInitializeScheduler( void )
 	pstTask->pvStackAddress = ( void* ) 0x600000;
 	pstTask->qwStackSize = 0x100000;
 	pstTask->qwTicket = 100;
-	//gs_qwTicketCount = 100;
+	gs_qwTicketCount = 100;
 	pstTask->qwStride = STRIDE_N / ( pstTask -> qwTicket );
 
 	// 프로세서 사용률을 계산하는데 사용하는 자료구조 초기화
 	gs_stScheduler.qwSpendProcessorTimeInIdleTask = 0;
 	gs_stScheduler.qwProcessorLoad = 0;
+
+    // FPU¸¦ »ç¿ëÇÑ ÅÂ½ºÅ© ID¸¦ À¯È¿ÇÏÁö ¾ÊÀº °ªÀ¸·Î ÃÊ±âÈ­
+    gs_stScheduler.qwLastFPUUsedTaskID = TASK_INVALIDID;
 }
 
 /**
@@ -405,6 +411,7 @@ TCB* kGetRunningTask( void )
 /**
  *  태스크 리스트에서 다음으로 실행할 태스크를 얻음
  */
+/*
 static TCB* kGetNextTaskToRun_Lottery( void )
 {
 	TCB* pstTarget = NULL;
@@ -457,8 +464,8 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 	}
 	return pstTarget;
 }
-
-/*static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
+*/
+static TCB* kGetNextTaskToRun_Stride( void ) // Stride scheduler
 {
 	TCB* pstTarget = NULL;
 	TCB* pstTemp = NULL;
@@ -503,7 +510,7 @@ static TCB* kGetNextTaskToRun_Lottery( void )
 	pstTarget->qwSwitchCount++;
 
 	return pstTarget;
-}*/
+}
 
 /**
  *  태스크를 스케줄러의 준비 리스트에 삽입
@@ -662,7 +669,7 @@ void kSchedule( void )
 
 	// 실행할 다음 태스크를 얻음
 	//pstNextTask = kGetNextTaskToRun_Stride();
-	pstNextTask = kGetNextTaskToRun_Lottery();
+	pstNextTask = kGetNextTaskToRun_Stride();
 	if( pstNextTask == NULL )
 	{
 		// 임계 영역 끝
@@ -681,12 +688,21 @@ void kSchedule( void )
 			TASK_PROCESSORTIME - gs_stScheduler.iProcessorTime;
 	}
 
+    // ´ÙÀ½¿¡ ¼öÇàÇÒ ÅÂ½ºÅ©°¡ FPU¸¦ ¾´ ÅÂ½ºÅ©°¡ ¾Æ´Ï¶ó¸é TS ºñÆ® ¼³Á¤
+    if( gs_stScheduler.qwLastFPUUsedTaskID != pstNextTask->stLink.qwID )
+    {
+        kSetTS();
+    }   
+    else
+    {
+        kClearTS();
+    }
+
 	// 태스크 종료 플래그가 설정된 경우 콘텍스트를 저장할 필요가 없으므로, 대기 리스트에
 	// 삽입하고 콘텍스트 전환
 	if( pstRunningTask->qwFlags & TASK_FLAGS_ENDTASK )
 	{
 		kAddListToTail( &( gs_stScheduler.stWaitList ), pstRunningTask );
-		//kPrintf("ID: [%d] pass: %x stride: %x ticket: %x\n", pstNextTask->stLink.qwID, pstNextTask -> qwPass, pstNextTask -> qwStride, pstNextTask -> qwTicket);
 		kSwitchContext( NULL, &( pstNextTask->stContext ) );
 	}
 	else
@@ -717,7 +733,7 @@ BOOL kScheduleInInterrupt( void )
 
 	// 전환할 태스크가 없으면 종료
 	//pstNextTask = kGetNextTaskToRun_Stride();
-	pstNextTask = kGetNextTaskToRun_Lottery();
+	pstNextTask = kGetNextTaskToRun_Stride();
 	if( pstNextTask == NULL )
 	{
 		// 임계 영역 끝
@@ -755,6 +771,16 @@ BOOL kScheduleInInterrupt( void )
 	}
 	// 임계 영역 끝
 	kUnlockForSystemData( bPreviousFlag );
+
+    // ´ÙÀ½¿¡ ¼öÇàÇÒ ÅÂ½ºÅ©°¡ FPU¸¦ ¾´ ÅÂ½ºÅ©°¡ ¾Æ´Ï¶ó¸é TS ºñÆ® ¼³Á¤
+    if( gs_stScheduler.qwLastFPUUsedTaskID != pstNextTask->stLink.qwID )
+    {
+        kSetTS();
+    }   
+    else
+    {
+        kClearTS();
+    }
 
 	// 전환해서 실행할 태스크를 Running Task로 설정하고 콘텍스트를 IST에 복사해서
 	// 자동으로 태스크 전환이 일어나도록 함
@@ -802,11 +828,12 @@ BOOL kEndTask( QWORD qwTaskID )
 
 	// 현재 실행중인 태스크이면 EndTask 비트를 설정하고 태스크를 전환
 	pstTarget = gs_stScheduler.pstRunningTask;
+	gs_qwTicketCount -= pstTarget->qwTicket; 
 	if( pstTarget->stLink.qwID == qwTaskID )
 	{
 		pstTarget->qwFlags |= TASK_FLAGS_ENDTASK;
 		SETPRIORITY( pstTarget->qwFlags, TASK_FLAGS_WAIT );
-
+		
 		// 임계 영역 끝
 		kUnlockForSystemData( bPreviousFlag );
 
@@ -1111,6 +1138,25 @@ void kHaltProcessorByLoad( void )
 	{
 		kHlt();
 	}
+}
+
+//==============================================================================
+//  FPU °ü·Ã
+//==============================================================================
+/**
+ *  ¸¶Áö¸·À¸·Î FPU¸¦ »ç¿ëÇÑ ÅÂ½ºÅ© ID¸¦ ¹ÝÈ¯
+ */
+QWORD kGetLastFPUUsedTaskID( void )
+{
+    return gs_stScheduler.qwLastFPUUsedTaskID;
+}
+
+/**
+ *  ¸¶Áö¸·À¸·Î FPU¸¦ »ç¿ëÇÑ ÅÂ½ºÅ© ID¸¦ ¼³Á¤
+ */
+void kSetLastFPUUsedTaskID( QWORD qwTaskID )
+{
+    gs_stScheduler.qwLastFPUUsedTaskID = qwTaskID;
 }
 
 // SSU_rand

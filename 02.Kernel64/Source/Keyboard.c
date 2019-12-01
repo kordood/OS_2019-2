@@ -648,10 +648,12 @@ BOOL kGetKeyFromKeyQueue( KEYDATA* pstData )
     BOOL bPreviousInterrupt;
     
     // 큐가 비었으면 키 데이터를 꺼낼 수 없음
-    if( kIsQueueEmpty( &gs_stKeyQueue ) == TRUE )
-    {
-        return FALSE;
-    }
+    /**
+     * if( kIsQueueEmpty( &gs_stKeyQueue ) == TRUE )
+     * {
+     *     return FALSE;
+     * }
+     */
 
     // 임계 영역 시작
     bPreviousInterrupt = kLockForSystemData();
