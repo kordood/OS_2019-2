@@ -160,6 +160,9 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 	// 자식 스레드 리스트를 초기화
 	kInitializeList( &( pstTask->stChildThreadList ) );
 
+    // FPU »ç¿ë ¿©ºÎ¸¦ »ç¿ëÇÏÁö ¾ÊÀº °ÍÀ¸·Î ÃÊ±âÈ­
+    pstTask->bFPUUsed = FALSE;
+
 	// 임계 영역 시작
 	bPreviousFlag = kLockForSystemData();
 
@@ -323,6 +326,9 @@ void kInitializeScheduler( void )
 	// 프로세서 사용률을 계산하는데 사용하는 자료구조 초기화
 	gs_stScheduler.qwSpendProcessorTimeInIdleTask = 0;
 	gs_stScheduler.qwProcessorLoad = 0;
+
+    // FPU¸¦ »ç¿ëÇÑ ÅÂ½ºÅ© ID¸¦ À¯È¿ÇÏÁö ¾ÊÀº °ªÀ¸·Î ÃÊ±âÈ­
+    gs_stScheduler.qwLastFPUUsedTaskID = TASK_INVALIDID;
 }
 
 /**
@@ -682,12 +688,21 @@ void kSchedule( void )
 			TASK_PROCESSORTIME - gs_stScheduler.iProcessorTime;
 	}
 
+    // ´ÙÀ½¿¡ ¼öÇàÇÒ ÅÂ½ºÅ©°¡ FPU¸¦ ¾´ ÅÂ½ºÅ©°¡ ¾Æ´Ï¶ó¸é TS ºñÆ® ¼³Á¤
+    if( gs_stScheduler.qwLastFPUUsedTaskID != pstNextTask->stLink.qwID )
+    {
+        kSetTS();
+    }   
+    else
+    {
+        kClearTS();
+    }
+
 	// 태스크 종료 플래그가 설정된 경우 콘텍스트를 저장할 필요가 없으므로, 대기 리스트에
 	// 삽입하고 콘텍스트 전환
 	if( pstRunningTask->qwFlags & TASK_FLAGS_ENDTASK )
 	{
 		kAddListToTail( &( gs_stScheduler.stWaitList ), pstRunningTask );
-		//kPrintf("ID: [%d] pass: %x stride: %x ticket: %x\n", pstNextTask->stLink.qwID, pstNextTask -> qwPass, pstNextTask -> qwStride, pstNextTask -> qwTicket);
 		kSwitchContext( NULL, &( pstNextTask->stContext ) );
 	}
 	else
@@ -756,6 +771,16 @@ BOOL kScheduleInInterrupt( void )
 	}
 	// 임계 영역 끝
 	kUnlockForSystemData( bPreviousFlag );
+
+    // ´ÙÀ½¿¡ ¼öÇàÇÒ ÅÂ½ºÅ©°¡ FPU¸¦ ¾´ ÅÂ½ºÅ©°¡ ¾Æ´Ï¶ó¸é TS ºñÆ® ¼³Á¤
+    if( gs_stScheduler.qwLastFPUUsedTaskID != pstNextTask->stLink.qwID )
+    {
+        kSetTS();
+    }   
+    else
+    {
+        kClearTS();
+    }
 
 	// 전환해서 실행할 태스크를 Running Task로 설정하고 콘텍스트를 IST에 복사해서
 	// 자동으로 태스크 전환이 일어나도록 함
@@ -1113,6 +1138,25 @@ void kHaltProcessorByLoad( void )
 	{
 		kHlt();
 	}
+}
+
+//==============================================================================
+//  FPU °ü·Ã
+//==============================================================================
+/**
+ *  ¸¶Áö¸·À¸·Î FPU¸¦ »ç¿ëÇÑ ÅÂ½ºÅ© ID¸¦ ¹ÝÈ¯
+ */
+QWORD kGetLastFPUUsedTaskID( void )
+{
+    return gs_stScheduler.qwLastFPUUsedTaskID;
+}
+
+/**
+ *  ¸¶Áö¸·À¸·Î FPU¸¦ »ç¿ëÇÑ ÅÂ½ºÅ© ID¸¦ ¼³Á¤
+ */
+void kSetLastFPUUsedTaskID( QWORD qwTaskID )
+{
+    gs_stScheduler.qwLastFPUUsedTaskID = qwTaskID;
 }
 
 // SSU_rand

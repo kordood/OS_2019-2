@@ -20,16 +20,66 @@ volatile QWORD g_qwTickCount = 0;
 void kMemSet( void* pvDestination, BYTE bData, int iSize )
 {
     int i;
+    QWORD qwData;
+    int iRemainByteStartOffset;
+    
+    // 8 바이트 데이터를 채움
+    qwData = 0;
+    for( i = 0 ; i < 8 ; i++ )
+    {
+        qwData = ( qwData << 8 ) | bData;
+    }
+    
+    // 8 바이트씩 먼저 채움
+    for( i = 0 ; i < ( iSize / 8 ) ; i++ )
+    {
+        ( ( QWORD* ) pvDestination )[ i ] = qwData;
+    }
+    
+    // 8 바이트씩 채우고 남은 부분을 마무리
+    iRemainByteStartOffset = i * 8;
+    for( i = 0 ; i < ( iSize % 8 ) ; i++ )
+    {
+        ( ( char* ) pvDestination )[ iRemainByteStartOffset++ ] = bData;
+    }
+}
+/*
+void kMemSet( void* pvDestination, BYTE bData, int iSize )
+{
+    int i;
     
     for( i = 0 ; i < iSize ; i++ )
     {
         ( ( char* ) pvDestination )[ i ] = bData;
     }
 }
+*/
 
 /**
  *  메모리 복사
  */
+int kMemCpy( void* pvDestination, const void* pvSource, int iSize )
+{
+    int i;
+    int iRemainByteStartOffset;
+    
+    // 8 바이트씩 먼저 복사
+    for( i = 0 ; i < ( iSize / 8 ) ; i++ )
+    {
+        ( ( QWORD* ) pvDestination )[ i ] = ( ( QWORD* ) pvSource )[ i ];
+    }
+    
+    // 8 바이트씩 채우고 남은 부분을 마무리
+    iRemainByteStartOffset = i * 8;
+    for( i = 0 ; i < ( iSize % 8 ) ; i++ )
+    {
+        ( ( char* ) pvDestination )[ iRemainByteStartOffset ] = 
+            ( ( char* ) pvSource )[ iRemainByteStartOffset ];
+        iRemainByteStartOffset++;
+    }
+    return iSize;
+}
+/*
 int kMemCpy( void* pvDestination, const void* pvSource, int iSize )
 {
     int i;
@@ -41,10 +91,51 @@ int kMemCpy( void* pvDestination, const void* pvSource, int iSize )
     
     return iSize;
 }
+*/
 
 /**
  *  메모리 비교
  */
+int kMemCmp( const void* pvDestination, const void* pvSource, int iSize )
+{
+    int i, j;
+    int iRemainByteStartOffset;
+    QWORD qwValue;
+    char cValue;
+    
+    // 8 바이트씩 먼저 비교
+    for( i = 0 ; i < ( iSize / 8 ) ; i++ )
+    {
+        qwValue = ( ( QWORD* ) pvDestination )[ i ] - ( ( QWORD* ) pvSource )[ i ];
+
+        // 틀린 위치를 정확하게 찾아서 그 값을 반환
+        if( qwValue != 0 )
+        {
+            for( i = 0 ; i < 8 ; i++ )
+            {
+                if( ( ( qwValue >> ( i * 8 ) ) & 0xFF ) != 0 )
+                {
+                    return ( qwValue >> ( i * 8 ) ) & 0xFF;
+                }
+            }
+        }
+    }
+    
+    // 8 바이트씩 채우고 남은 부분을 마무리
+    iRemainByteStartOffset = i * 8;
+    for( i = 0 ; i < ( iSize % 8 ) ; i++ )
+    {
+        cValue = ( ( char* ) pvDestination )[ iRemainByteStartOffset ] -
+            ( ( char* ) pvSource )[ iRemainByteStartOffset ];
+        if( cValue != 0 )
+        {
+            return cValue;
+        }
+        iRemainByteStartOffset++;
+    }    
+    return 0;
+}
+/*
 int kMemCmp( const void* pvDestination, const void* pvSource, int iSize )
 {
     int i;
@@ -69,7 +160,7 @@ BOOL kSetInterruptFlag( BOOL bEnableInterrupt )
     QWORD qwRFLAGS;
     
     // 이전의 RFLAGS 레지스터 값을 읽은 뒤에 인터럽트 가능/불가 처리
-    qwRFLAGS = kReadRFLAGS();    
+    qwRFLAGS = kReadRFLAGS();
     if( bEnableInterrupt == TRUE )
     {
         kEnableInterrupt();
@@ -383,12 +474,13 @@ int kSPrintf( char* pcBuffer, const char* pcFormatString, ... )
  */
 int kVSPrintf( char* pcBuffer, const char* pcFormatString, va_list ap )
 {
-    QWORD i, j;
+    QWORD i, j, k;
     int iBufferIndex = 0;
     int iFormatLength, iCopyLength;
     char* pcCopyString;
     QWORD qwValue;
     int iValue;
+    double dValue;
     
     // 포맷 문자열의 길이를 읽어서 문자열의 길이만큼 데이터를 출력 버퍼에 출력
     iFormatLength = kStrLen( pcFormatString );
@@ -448,6 +540,31 @@ int kVSPrintf( char* pcBuffer, const char* pcFormatString, va_list ap )
                 iBufferIndex += kIToA( qwValue, pcBuffer + iBufferIndex, 16 );
                 break;
             
+                // 소수점 둘째 자리까지 실수를 출력
+            case 'f':
+                dValue = ( double) ( va_arg( ap, double ) );
+                // 셋째 자리에서 반올림 처리
+                dValue += 0.005;
+                // 소수점 둘째 자리부터 차례로 저장하여 버퍼를 뒤집음
+                pcBuffer[ iBufferIndex ] = '0' + ( QWORD ) ( dValue * 100 ) % 10;
+                pcBuffer[ iBufferIndex + 1 ] = '0' + ( QWORD ) ( dValue * 10 ) % 10;
+                pcBuffer[ iBufferIndex + 2 ] = '.';
+                for( k = 0 ; ; k++ )
+                {
+                    // 정수 부분이 0이면 종료
+                    if( ( ( QWORD ) dValue == 0 ) && ( k != 0 ) )
+                    {
+                        break;
+                    }
+                    pcBuffer[ iBufferIndex + 3 + k ] = '0' + ( ( QWORD ) dValue % 10 );
+                    dValue = dValue / 10;
+                }
+                pcBuffer[ iBufferIndex + 3 + k ] = '\0';
+                // 값이 저장된 길이만큼 뒤집고 길이를 증가시킴
+                kReverseString( pcBuffer + iBufferIndex );
+                iBufferIndex += 3 + k;
+                break;
+                
                 // 위에 해당하지 않으면 문자를 그대로 출력하고 버퍼의 인덱스를
                 // 1만큼 이동
             default:

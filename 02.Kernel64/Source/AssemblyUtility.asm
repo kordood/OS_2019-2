@@ -9,10 +9,12 @@
 SECTION .text       ; text 섹션(세그먼트)을 정의
 
 ; C 언어에서 호출할 수 있도록 이름을 노출함(Export)
-global kInPortByte, kOutPortByte, kLoadGDTR, kLoadTR, kLoadIDTR
+global kInPortByte, kOutPortByte, kInPortWord, kOutPortWord 
+global kLoadGDTR, kLoadTR, kLoadIDTR
 global kEnableInterrupt, kDisableInterrupt, kReadRFLAGS
 global kReadTSC
 global kSwitchContext, kHlt, kTestAndSet
+global kInitializeFPU, kSaveFPUContext, kLoadFPUContext, kSetTS, kClearTS
 
 ; 포트로부터 1바이트를 읽음
 ;   PARAM: 포트 번호
@@ -42,7 +44,35 @@ kOutPortByte:
     pop rax         ; 함수에서 사용이 끝난 레지스터를 복원
     pop rdx
     ret             ; 함수를 호출한 다음 코드의 위치로 복귀
-
+    
+; 포트로부터 2바이트를 읽음
+;   PARAM: 포트 번호
+kInPortWord:
+    push rdx        ; 함수에서 임시로 사용하는 레지스터를 스택에 저장
+                    ; 함수의 마지막 부분에서 스택에 삽입된 값을 꺼내 복원
+    
+    mov rdx, rdi    ; RDX 레지스터에 파라미터 1(포트 번호)를 저장
+    mov rax, 0      ; RAX 레지스터를 초기화
+    in ax, dx       ; DX 레지스터에 저장된 포트 어드레스에서 두 바이트를 읽어
+                    ; AX 레지스터에 저장, AX 레지스터는 함수의 반환 값으로 사용됨
+    
+    pop rdx         ; 함수에서 사용이 끝난 레지스터를 복원
+    ret             ; 함수를 호출한 다음 코드의 위치로 복귀
+    
+; 포트에 2바이트를 씀
+;   PARAM: 포트 번호, 데이터
+kOutPortWord:
+    push rdx        ; 함수에서 임시로 사용하는 레지스터를 스택에 저장
+    push rax        ; 함수의 마지막 부분에서 스택에 삽입된 값을 꺼내 복원
+    
+    mov rdx, rdi    ; RDX 레지스터에 파라미터 1(포트 번호)를 저장
+    mov rax, rsi    ; RAX 레지스터에 파라미터 2(데이터)를 저장    
+    out dx, ax      ; DX 레지스터에 저장된 포트 어드레스에 AX 레지스터에 저장된
+                    ; 두 바이트를 씀
+    
+    pop rax         ; 함수에서 사용이 끝난 레지스터를 복원
+    pop rdx
+    ret             ; 함수를 호출한 다음 코드의 위치로 복귀
 
 ; GDTR 레지스터에 GDT 테이블을 설정
 ;   PARAM: GDT 테이블의 정보를 저장하는 자료구조의 어드레스
@@ -226,7 +256,7 @@ kHlt:
     ret
     
 ; 테스트와 설정을 하나의 명령으로 처리
-;	Destination과 Compare를 비교하여 같다면, Destination에 Source 값을 삽입
+;   Destination과 Compare를 비교하여 같다면, Destination에 Source 값을 삽입
 ;   PARAM: 값을 저장할 어드레스(Destination, rdi), 비교할 값(Compare, rsi), 
 ;          설정할 값(Source, rdx) 
 kTestAndSet:
@@ -245,3 +275,44 @@ kTestAndSet:
 .SUCCESS:               ; Destination과 Compare가 같은 경우
     mov rax, 0x01
     ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;   FPU 관련 어셈블리어 함수
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;    
+; FPU를 초기화
+;   PAPAM: 없음
+kInitializeFPU:
+    finit               ; FPU 초기화를 수행
+    ret
+    
+; FPU 관련 레지스터를 콘텍스트 버퍼에 저장
+;   PARAM: Buffer Address
+kSaveFPUContext:
+    fxsave  [ rdi ]     ; 첫 번째 파라미터로 전달된 버퍼에 FPU 레지스터를 저장
+    ret
+    
+; FPU 관련 레지스터를 콘텍스트 버퍼에서 복원
+;   PARAM: Buffer Address
+kLoadFPUContext:
+    fxrstor [ rdi ]     ; 첫 번째 파라미터로 전달된 버퍼에서 FPU 레지스터를 복원
+    ret   
+
+; CR0 컨트롤 레지스터의 TS 비트를 1로 설정
+;   PARAM: 없음
+kSetTS:
+    push rax            ; 스택에 RAX 레지스터의 값을 저장
+
+    mov rax, cr0        ; CR0 컨트롤 레지스터의 값을 RAX 레지스터로 저장
+    or rax, 0x08        ; TS 비트(비트 7)를 1로 설정
+    mov cr0, rax        ; TS 비트가 1로 설정된 값을 CR0 컨트롤 레지스터로 저장
+
+    pop rax             ; 스택에서 RAX 레지스터의 값을 복원
+    ret
+    
+; CR0 컨트롤 레지스터의 TS 비트를 0으로 설정
+;   PARAM: 없음
+kClearTS:
+    clts                ; CR0 컨트롤 레지스터에서 TS 비트를 0으로 설정
+    ret    

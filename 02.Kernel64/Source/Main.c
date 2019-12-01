@@ -14,6 +14,9 @@
 #include "ConsoleShell.h"
 #include "Task.h"
 #include "PIT.h"
+#include "DynamicMemory.h"
+#include "HardDisk.h"
+#include "FileSystem.h"
 
 // 함수 선언
 void kPrintStringMapped( int iX, int iY, const char* pcString );
@@ -64,6 +67,12 @@ void Main( void )
     kPrintf( "TCB Pool And Scheduler Initialize...........[Pass]\n" );
     iCursorY++;
     kInitializeScheduler();
+    
+    // 동적 메모리 초기화
+    kPrintf( "Dynamic Memory Initialize...................[Pass]\n" );
+    iCursorY++;
+    kInitializeDynamicMemory();
+
     // 1ms당 한번씩 인터럽트가 발생하도록 설정
     kInitializePIT( MSTOCOUNT( 1 ), 1 );
     
@@ -90,6 +99,19 @@ void Main( void )
     kSetCursor( 45, iCursorY++ );
     kPrintf( "Pass\n" );
 
+    // 파일 시스템을 초기화
+    kPrintf( "File System Initialize......................[    ]" );
+    if( kInitializeFileSystem() == TRUE )
+    {
+        kSetCursor( 45, iCursorY++ );
+        kPrintf( "Pass\n" );
+    }
+    else
+    {
+        kSetCursor( 45, iCursorY++ );
+        kPrintf( "Fail\n" );
+    }
+    
     // 유휴 태스크를 시스템 스레드로 생성하고 셸을 시작
     kCreateTask( TASK_FLAGS_LOWEST | TASK_FLAGS_THREAD | TASK_FLAGS_SYSTEM | TASK_FLAGS_IDLE, 0, 0, 
             ( QWORD ) kIdleTask );
