@@ -35,6 +35,7 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "cpuspeed", "Measure Processor Speed", kMeasureProcessorSpeed },
         { "date", "Show Date And Time", kShowDateAndTime },
         { "createtask", "Create Task, ex)createtask 1(type) 10(count)", kCreateTestTask },
+        { "forktask", "Fork Task", kForkTest },
         { "changepriority", "Change Task Priority, ex)changepriority 1(ID) 2(Priority)",
                 kChangeTaskPriority },
         { "tasklist", "Show Task List", kShowTaskList },
@@ -800,7 +801,7 @@ static void kTestTask1( void )
  *  태스크 2
  *      자신의 ID를 참고하여 특정 위치에 회전하는 바람개비를 출력
  */
-static void kTestTask2( void )
+void kTestTask2( void )
 {
     int i = 0, iOffset;
     CHARACTER* pstScreen = ( CHARACTER* ) CONSOLE_VIDEOMEMORYADDRESS;

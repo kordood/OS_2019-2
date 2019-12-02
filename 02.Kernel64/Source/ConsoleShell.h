@@ -113,4 +113,5 @@ void kPagefault( const char* pcParameterBuffer );
 void kProtectionfault( const char* pcParameterBuffer );
 
 void kDummy(const char* pcParanegerBuffer);
+void kTestTask2( void );
 #endif /*__CONSOLESHELL_H__*/

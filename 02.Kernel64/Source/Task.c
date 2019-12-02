@@ -8,6 +8,7 @@
 
 #include "Task.h"
 #include "Descriptor.h"
+#include "ConsoleShell.h"
 
 // 스케줄러 관련 자료구조
 static SCHEDULER gs_stScheduler;
@@ -173,6 +174,107 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 	kUnlockForSystemData( bPreviousFlag );
 
 	return pstTask;
+}
+
+/**
+ *  태스크를 fork
+ *      태스크 ID에 따라서 스택 풀에서 스택 자동 할당
+ */
+QWORD kForkTask( void )
+{
+	TCB* pstTask, * pstProcess;
+	void* pvStackAddress;
+	BOOL bPreviousFlag;
+
+	// 임계 영역 시작
+	bPreviousFlag = kLockForSystemData();
+    // 새로운 id 할당
+	pstTask = kAllocateTCB();
+	if( pstTask == NULL )
+	{
+		// 임계영역 끝
+		kUnlockForSystemData( bPreviousFlag );
+		return -1;
+	}
+
+	// 현재 프로세스 또는 스레드가 속한 프로세스를 검색
+	pstProcess = kGetProcessByThread( kGetRunningTask() );
+	// 만약 프로세스가 없다면 아무런 작업도 하지 않음
+	if( pstProcess == NULL )
+	{
+		kFreeTCB( pstTask->stLink.qwID );
+		// 임계 영역 끝
+		kUnlockForSystemData( bPreviousFlag );
+		return -1;
+	}
+
+    //QWORD qwFlags = TASK_FLAGS_HIGHEST | TASK_FLAGS_THREAD;
+    void* pvMemoryAddress = 0;
+    QWORD qwMemorySize = 0;
+    QWORD qwFlags = pstProcess->qwFlags;
+    //void* pvMemoryAddress = pstProcess->pvMemoryAddress;
+    //QWORD qwMemorySize = pstProcess->qwMemorySize;
+    //QWORD qwEntryPointAddress = pstProcess->stContext.vqRegister[ TASK_RIPOFFSET ];
+    QWORD qwEntryPointAddress = (QWORD) kTestTask2; 
+    kPrintf("%Q\n", qwFlags);
+    kPrintf("%Q\n", qwMemorySize);
+    kPrintf("%Q\n", qwEntryPointAddress);
+
+
+	// 스레드를 생성하는 경우라면 내가 속한 프로세스의 자식 스레드 리스트에 연결함
+	if( qwFlags & TASK_FLAGS_THREAD )
+    {
+		// 현재 스레드의 프로세스를 찾아서 생성할 스레드에 프로세스 정보를 상속
+		pstTask->qwParentProcessID = pstProcess->stLink.qwID;
+		pstTask->pvMemoryAddress = pstProcess->pvMemoryAddress;
+		pstTask->qwMemorySize = pstProcess->qwMemorySize;
+
+		// 부모 프로세스의 자식 스레드 리스트에 추가
+		kAddListToTail( &( pstProcess->stChildThreadList ), &( pstTask->stThreadLink ) );
+	}
+	// 프로세스는 파라미터로 넘어온 값을 그대로 설정
+	else
+	{
+		pstTask->qwParentProcessID = pstProcess->stLink.qwID;
+		pstTask->pvMemoryAddress = pvMemoryAddress;
+		pstTask->qwMemorySize = qwMemorySize;
+	}
+	// 스레드의 ID를 태스크 ID와 동일하게 설정
+	pstTask->stThreadLink.qwID = pstTask->stLink.qwID;    
+	// 임계 영역 끝
+	kUnlockForSystemData( bPreviousFlag );
+
+	// 태스크 ID로 스택 어드레스 계산, 하위 32비트가 스택 풀의 오프셋 역할 수행
+	pvStackAddress = ( void* ) ( TASK_STACKPOOLADDRESS + ( TASK_STACKSIZE * 
+				GETTCBOFFSET( pstTask->stLink.qwID ) ) );
+
+	// TCB를 설정한 후 준비 리스트에 삽입하여 스케줄링될 수 있도록 함
+	kSetUpTask( pstTask, qwFlags, qwEntryPointAddress, pvStackAddress, 
+			TASK_STACKSIZE );
+
+	// 자식 스레드 리스트를 초기화
+	kInitializeList( &( pstTask->stChildThreadList ) );
+
+    pstTask->bFPUUsed = FALSE;
+
+	// 임계 영역 시작
+	bPreviousFlag = kLockForSystemData();
+
+	// 태스크를 준비 리스트에 삽입
+	kAddTaskToReadyList( pstTask );
+
+    kPrintf("child: %Q\n", pstTask->stLink.qwID);
+    kPrintf("parent: %Q\n", pstProcess->stLink.qwID);
+    kPrintf("current: %Q\n", kGetProcessByThread(kGetRunningTask())->stLink.qwID);
+
+    // child 프로세스에게는 0을 리턴
+    //if(pstTask->stLink.qwID == (kGetProcessByThread(kGetRunningTask()))->stLink.qwID)
+        //return 0;
+    //else //parent 프로세스에게는 생성된 child 프로세스의 PID를 리턴
+        //return (pstTask->stLink.qwID);
+	// 임계 영역 끝
+	kUnlockForSystemData( bPreviousFlag );
+    return 0;
 }
 
 /**
@@ -1167,4 +1269,27 @@ SSU_srand(unsigned int seed){
 int SSU_rand(void){
 	SSU_next = (SSU_next * 1103515245 + 5571031)>>16;
 	return SSU_next;
+}
+
+/**
+  * process fork
+**/
+void kForkTest(void)
+{
+    //while(1){
+    BOOL bPreviousFlag;
+    bPreviousFlag = kLockForSystemData();
+    QWORD rc = kForkTask();
+    /**
+    kPrintf("rc: %Q\n", rc);
+    if(rc < 0) {
+        kPrintf("fork failed\n");
+    } else if( rc == 0 ) {
+        kPrintf("hello, I am child\n");
+    } else{
+        kPrintf("hello, I am parent\n");
+    }
+    **/
+    kUnlockForSystemData( bPreviousFlag );
+    //}
 }
