@@ -46,142 +46,139 @@ void kPagefaultHandler( int iVectorNumber, QWORD qwErrorCode )
     ecBuffer[ 3 ] = '0' + qwErrorCode % 10;
 	kPrintf("error code: %s\n", ecBuffer);
 
-	if(!(qwErrorCode & 0x01)){					// is page fault?
-		DWORD entryIndex;
-		QWORD CR2, CR3;
+	DWORD entryIndex;
+	QWORD CR2, CR3;
 
-		__asm__ __volatile__(
-			"mov %%cr2, %%rax \n\t"
-			"mov %%rax, %0 \n\t"
-			"mov %%cr3, %%rax \n\t"
-			"mov %%rax, %1 \n\t"
-		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
+	__asm__ __volatile__(
+		"mov %%cr2, %%rax \n\t"
+		"mov %%rax, %0 \n\t"
+		"mov %%cr3, %%rax \n\t"
+		"mov %%rax, %1 \n\t"
+	: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
 
-		entryIndex = (CR2 >> 12);
+	entryIndex = (CR2 >> 12);
 
-		if(entryIndex > 511){
-    		kPrintStringXY( 32, 4, "Entry index bound error");
-			while(1);
-		}
-		
-
-		QWORD pt_index, pd_index, pdpt_index, pml4_index;
-		QWORD *ptr;
-		pt_index = (CR2 >> 12) & 0x1ff;
-		pd_index = (CR2 >> 21) & 0x1ff;
-		pdpt_index = (CR2 >> 30) & 0x1ff;
-		pml4_index = (CR2 >> 39) & 0x1ff;
-
-		ptr = (QWORD *)CR3 + pml4_index;
-		
-		if(((*ptr) & 0x01) ^ 0x01){
-			*ptr = (*ptr) ^ 0x01;
-		}
-
-		ptr = (QWORD *)((*ptr)&0xFFFFFFF000) + pdpt_index;
-
-		if(((*ptr) & 0x01) ^ 0x01){
-			*ptr = (*ptr) ^ 0x01;
-		}
-
-		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pd_index;
-
-		if(((*ptr) & 0x01) ^ 0x01){
-			*ptr = (*ptr) ^ 0x01;
-		}
-
-		kPrintf("idx: 0x%x\n", pd_index);
-		if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
-		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
-
-		if(((*ptr) & 0x01) ^ 0x01){
-			*ptr = (*ptr) ^ 0x01;
-		}
-		QWORD var = *ptr;
-
-		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
-		}
-
-		invlpg(&CR2);
-		/*
-		__asm__ __volatile__(
-			"mov %%cr2, %%rax \n\t"
-			"mov %%rax, %0 \n\t"
-			"mov %%cr3, %%rax \n\t"
-			"mov %%rax, %1 \n\t"
-		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
-		*/
-	//	asm volatile ( "invlpg (%0)" : : "b"(CR2) : "memory" );			// <<<<<<<<<<<<<<<<<<< This point maybe need fixing(TLB invalidation)
-
-
-    	kPrintf("====================================================\n");
-		kPrintf("                 Page Fault Occurs~!                \n" );
-    	kPrintf("                  Address: 0x%x                     \n", CR2);
-    	kPrintf("====================================================\n");
+	if(entryIndex > 511){
+		kPrintStringXY( 32, 4, "Entry index bound error");
+		while(1);
 	}
-	else if((qwErrorCode & 0x02)>>1){					// is protection fault?
-		DWORD entryIndex;
-		QWORD CR2, CR3;
+	
 
-		__asm__ __volatile__(
-			"mov %%cr2, %%rax \n\t"
-			"mov %%rax, %0 \n\t"
-			"mov %%cr3, %%rax \n\t"
-			"mov %%rax, %1 \n\t"
-		: "=m" (CR2), "=m" (CR3));			// CR2: fault addr(0x1ff000), CR3: P
+	QWORD pt_index, pd_index, pdpt_index, pml4_index;
+	QWORD *ptr;
+	pt_index = (CR2 >> 12) & 0x1ff;
+	pd_index = (CR2 >> 21) & 0x1ff;
+	pdpt_index = (CR2 >> 30) & 0x1ff;
+	pml4_index = (CR2 >> 39) & 0x1ff;
 
-		entryIndex = (CR2 >> 12);
-
-		if(entryIndex > 511){
-    		kPrintStringXY( 32, 4, "Entry index bound error");
-			while(1);
-		}
-
-		QWORD pt_index, pd_index, pdpt_index, pml4_index;
-		QWORD *ptr;
-		pt_index = (CR2 >> 12) & 0x1ff;
-		pd_index = (CR2 >> 21) & 0x1ff;
-		pdpt_index = (CR2 >> 30) & 0x1ff;
-		pml4_index = (CR2 >> 39) & 0x1ff;
-
-		ptr = (QWORD *)CR3 + pml4_index;
-		
-		if(((*ptr) & 0x02) ^ 0x02){
-			*ptr = (*ptr) ^ 0x02;
-		}
-
-		ptr = (QWORD *)((*ptr)&0xFFFFFFF000) + pdpt_index;
-
-		if(((*ptr) & 0x02) ^ 0x02){
-			*ptr = (*ptr) ^ 0x02;
-		}
-
-		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pd_index;
-
-		if(((*ptr) & 0x02) ^ 0x02){
-			*ptr = (*ptr) ^ 0x02;
-		}
-
-		if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
-		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
-
-		if(((*ptr) & 0x02) ^ 0x02){
-			*ptr = (*ptr) ^ 0x02;
-		}
-		QWORD var = *ptr;
-
-		ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
-		}
-
-		invlpg(&CR2);
-
-    	kPrintf("====================================================\n");
-		kPrintf("              Protection Fault Occurs~!             \n" );
-    	kPrintf("                  Address: 0x%x                     \n", CR2);
-    	kPrintf("====================================================\n");
+	ptr = (QWORD *)CR3 + pml4_index;
+	
+	if(((*ptr) & 0x01) ^ 0x01){
+		*ptr = (*ptr) ^ 0x01;
 	}
+
+	ptr = (QWORD *)((*ptr)&0xFFFFFFF000) + pdpt_index;
+
+	if(((*ptr) & 0x01) ^ 0x01){
+		*ptr = (*ptr) ^ 0x01;
+	}
+
+	ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pd_index;
+
+	if(((*ptr) & 0x01) ^ 0x01){
+		*ptr = (*ptr) ^ 0x01;
+	}
+
+	kPrintf("idx: 0x%x\n", pd_index);
+	if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
+	ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+
+	if(((*ptr) & 0x01) ^ 0x01){
+		*ptr = (*ptr) ^ 0x01;
+	}
+	QWORD var = *ptr;
+
+	ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+	}
+
+	invlpg(&CR2);
+
+	kPrintf("====================================================\n");
+	kPrintf("                 Page Fault Occurs~!                \n" );
+	kPrintf("                  Address: 0x%x                     \n", CR2);
+	kPrintf("====================================================\n");
 }
 
+
+void kProtectionfaultHandler( int iVectorNumber, QWORD qwErrorCode )
+{
+    char ecBuffer[ 5 ] = { 0, };
+    ecBuffer[ 0 ] = '0' + (qwErrorCode>>32) / 10;
+    ecBuffer[ 1 ] = '0' + (qwErrorCode>>32) % 10;
+    ecBuffer[ 2 ] = '0' + qwErrorCode / 10;
+    ecBuffer[ 3 ] = '0' + qwErrorCode % 10;
+    kPrintf("error code: %s\n", ecBuffer);
+
+    DWORD entryIndex;
+    QWORD CR2, CR3;
+
+    __asm__ __volatile__(
+        "mov %%cr2, %%rax \n\t"
+        "mov %%rax, %0 \n\t"
+        "mov %%cr3, %%rax \n\t"
+        "mov %%rax, %1 \n\t"
+    : "=m" (CR2), "=m" (CR3));          // CR2: fault addr(0x1ff000), CR3: P
+
+    entryIndex = (CR2 >> 12);
+
+    if(entryIndex > 511){
+        kPrintStringXY( 32, 4, "Entry index bound error");
+        while(1);
+    }
+
+    QWORD pt_index, pd_index, pdpt_index, pml4_index;
+    QWORD *ptr;
+    pt_index = (CR2 >> 12) & 0x1ff;
+    pd_index = (CR2 >> 21) & 0x1ff;
+    pdpt_index = (CR2 >> 30) & 0x1ff;
+    pml4_index = (CR2 >> 39) & 0x1ff;
+
+    ptr = (QWORD *)CR3 + pml4_index;
+    
+    if(((*ptr) & 0x02) ^ 0x02){
+        *ptr = (*ptr) ^ 0x02;
+    }
+
+    ptr = (QWORD *)((*ptr)&0xFFFFFFF000) + pdpt_index;
+
+    if(((*ptr) & 0x02) ^ 0x02){
+        *ptr = (*ptr) ^ 0x02;
+    }
+
+    ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pd_index;
+
+    if(((*ptr) & 0x02) ^ 0x02){
+        *ptr = (*ptr) ^ 0x02;
+    }
+
+    if(pml4_index == 0 && pdpt_index == 0 && pd_index == 0){
+    ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+
+    if(((*ptr) & 0x02) ^ 0x02){
+        *ptr = (*ptr) ^ 0x02;
+    }
+    QWORD var = *ptr;
+
+    ptr = (QWORD *)(*ptr&0xFFFFFFF000) + pt_index;
+    }
+
+    invlpg(&CR2);
+
+    kPrintf("====================================================\n");
+    kPrintf("              Protection Fault Occurs~!             \n" );
+    kPrintf("                  Address: 0x%x                     \n", CR2);
+    kPrintf("====================================================\n");
+}
 
 /**
  *  공통으로 사용하는 인터럽트 핸들러 
