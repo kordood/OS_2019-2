@@ -14,7 +14,7 @@ static SCHEDULER gs_stScheduler;
 static TCBPOOLMANAGER gs_stTCBPoolManager;
 
 static QWORD gs_qwTicketCount;
-static QWORD gs_qwAllocatedTask = 0;
+static QWORD gs_qwStartAddress = 0x1200010;
 static QWORD gs_qwEntryPointAddress;
 BOOL chk = 0;
 BOOL isChild = 0;
@@ -188,15 +188,17 @@ TCB* kForkTask( void )
     BOOL bPreviousFlag = kLockForSystemData();
 
     TCB* pstProcess = kGetProcessByThread( kGetRunningTask() );
-    void* pvMemoryAddress = 0x1200010 + (gs_qwAllocatedTask*0x200000);
-    gs_qwAllocatedTask++;
-    QWORD qwMemorySize = 0x200000; 
+    QWORD qwMemorySize = pstProcess->qwMemorySize;
+    void* pvMemoryAddress = gs_qwStartAddress;
+    gs_qwStartAddress = gs_qwStartAddress + qwMemorySize;
+    //QWORD qwMemorySize = 0x200000; 
     QWORD qwFlags = pstProcess->qwFlags;
     TCB* ForkedTask = kCreateTask(qwFlags, pvMemoryAddress, qwMemorySize, gs_qwEntryPointAddress);
 
 	kUnlockForSystemData( bPreviousFlag );
 
     return ForkedTask;
+
 }
 
 /**
