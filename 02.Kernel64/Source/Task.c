@@ -18,6 +18,7 @@ static QWORD gs_qwTicketCount;
 static QWORD gs_qwAllocatedTask = 0;
 static QWORD gs_qwEntryPointAddress;
 BOOL chk = 0;
+BOOL isChild = 0;
 //QWORD rc;
 TCB* gs_ForkedTask;
 //==============================================================================
@@ -1347,9 +1348,12 @@ QWORD kFork( void )
     //자식 프로세스라면
     if(gs_ForkedTask != NULL && currentTask->stLink.qwID == gs_ForkedTask->stLink.qwID)
     {
+        isChild = 1;
         rc = 0;
     }
     else{ //부모 프로세스라면
+        while(isChild == 0)
+            kSchedule();
         rc = gs_ForkedTask->stLink.qwID;
     }
     kUnlockForSystemData( bPreviousFlag );
@@ -1363,9 +1367,13 @@ QWORD kFork( void )
 void kForkTest(void)
 {
     chk = 0;
+    isChild = 0;
     kPrintf("hello world( qwID: %Q )\n", (QWORD)gs_stScheduler.pstRunningTask->stLink.qwID);
     gs_qwEntryPointAddress = kGetRIP();
+    //kPrintf("bring\n");
     //gs_ForkedTask->stContext.vqRegister[ TASK_RIPOFFSET ] = gs_qwEntryPointAddress;
+    //^BOOL bPreviousFlag = kLockForSystemData();
+    //TCB* current = gs_stScheduler.pstRunningTask;
     QWORD rc = kFork(); //여기가 fork 시점
     /**
     if(rc>0)
@@ -1382,26 +1390,22 @@ void kForkTest(void)
         kPrintf("fork failed\n");
     else if(rc == 0) //child
     {
-        kPrintf("hello, I am child\n");
-        kSchedule();
+        kPrintf("hello, I am child (pid: %Q)\n",
+                (QWORD)((gs_stScheduler.pstRunningTask)->stLink.qwID));//, current->stLink.qwID);
+        while( 1 )
+            kSleep( 1 );
+        //kExitTask();
     }
     else
     {
-        kPrintf("hello, I am parent\n");
+        kPrintf("hello, I am parent of %Q (pid: %Q)\n", //, current->stLink.qwID);
+                (QWORD)gs_ForkedTask->stLink.qwID, (QWORD)((gs_stScheduler.pstRunningTask)->stLink.qwID));//, current->stLink.qwID);
         //chk = 1;
     }
 
-    kPrintf("done\n");
-    
-    return;
-    /**
-    kPrintf("rc: %Q\n", rc);
-    if(rc < 0) {
-        kPrintf("fork failed\n");
-    } else if( rc == 0 ) {
-        kPrintf("hello, I am child\n");
-    } else{
-        kPrintf("hello, I am parent\n");
-    }
-    **/
+    //kSchedule();
+
+    //kPrintf("done\n");
+    //^kUnlockForSystemData( bPreviousFlag );
+    //kPrintf("dddd\n");
 }
