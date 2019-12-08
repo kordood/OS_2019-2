@@ -1,14 +1,112 @@
+
 #include "ViEditor.h"
-#include "Utility.h"
-#include "Keyboard.h"
-#include "Console.h"
-#include "ConsoleShell.h"
+
+FILE* kViFileOpenManager(const char *pcFileName, const char* pcMode){
+
+	return kOpenFile(pcFileName,pcMode);
+
+//	kLock( &( gs_stFileSystemManager.stMutex ) );
+
+
+/*	int iDirectoryEntryOffset;
+	DIRECTORYENTRY stEntry;
+
+
+	// 파일이 존재하는가 확인
+	iDirectoryEntryOffset = knFindDirectoryEntry( pcFileName, &stEntry );	
+
+
+	//파일 존재 안함
+	if(iDirectoryEntryOffset == -1){
+		if(knCreateFile( pcFileName, &stEntry, &iDirectoryEntryOffset ) == FALSE){
+//			kUnlock( & ( gs_stFileSystemManager.stMutex ) );
+			return NULL ; 
+		}
+
+
+		pstFile = knAllocateFileDirectoryHandle();
+
+		if(pstFile = NULL){
+//			kUnlock( & ( gs_stFileSystemManager.stMutex ) );
+			return NULL;
+		}
+
+		pstFile->bType = FILESYSTEM_TYPE_FILE;
+		pstFile->stFileHandle.iDirectoryEntryOffset = iDirectoryEntryOffset;
+		pstFile->stFileHandle.dwFileSize = stEntry.dwFileSize;
+		pstFile->stFileHandle.dwStartClusterIndex = stEntry.dwStartClusterIndex;
+		pstFile->stFileHandle.dwCurrentClusterIndex = stEntry.dwStartClusterIndex;
+		pstFile->stFileHandle.dwPreviousClusterIndex = stEntry.dwStartClusterIndex;
+		pstFile->stFileHandle.dwCurrentOffset = 0;
+
+//		kUnlock( & ( gs_stFileSystemManager.stMutex ) );
+	}
+
+	//파일 존재 함
+	else{
+		pstFile = fopen(pcFileName, "r");
+		//kReadFile(void* buffer, DWORD dwSize, DWORD dwCount, FILE* pstFile)
+	}
+
+	return pstFile;
+
+*/
+	
+}
+
+
+void kViShowFile( FILE* pstFile ){
+
+	int iEnterCount = 0;
+
+	BYTE bKey;
+
+	while( 1 )
+    {
+        if( fread( &bKey, 1, 1, pstFile ) != 1 )
+        {
+            break;
+        }
+        kPrintf( "%c", bKey );
+
+        // ¸¸¾à ¿£ÅÍ Å°ÀÌ¸é ¿£ÅÍ Å° È½¼ö¸¦ Áõ°¡½ÃÅ°°í 20¶óÀÎ±îÁö Ãâ·ÂÇß´Ù¸é 
+        // ´õ Ãâ·ÂÇÒÁö ¿©ºÎ¸¦ ¹°¾îº½
+        if( bKey == KEY_ENTER )
+        {
+            iEnterCount++;
+
+            if( ( iEnterCount != 0 ) && ( ( iEnterCount % 20 ) == 0 ) )
+            {
+                kPrintf( "Press any key to continue... ('q' is exit) : " );
+                if( kGetCh() == 'q' )
+                {
+                    kPrintf( "\n" );
+                    break;
+                }
+                kPrintf( "\n" );
+                iEnterCount = 0;
+            }
+        }
+    }
+    
+	fclose( pstFile );
+	
+}
+
+void kSaveFile(FILE* pstFile){
+
+}
+
 
 const void kViManager( const char* pcParameterBuffer ){
-	PARAMETERLIST stList;
-	char vcFileName[ 30 ];
 
-	// Keyboard
+	PARAMETERLIST stList;
+
+	char pcFileName[ 50 ];
+	int iFileNameLength;
+
+	FILE* pstFile;
+
 	char vcEditorCommandBuffer[ CONSOLE_WIDTH - 1];
 	int iEditorCommandBufferIndex = 0;
 	char vcEditorBuffer[ CONSOLE_WIDTH * (CONSOLE_HEIGHT - 2)];
@@ -18,18 +116,21 @@ const void kViManager( const char* pcParameterBuffer ){
 	int iSaveEditorCursorX = 0, iSaveEditorCursorY = 1;
 
 	BYTE bKey;
-
-	// Parameter
+	
 	kInitializeParameter( &stList, pcParameterBuffer );
-	kGetNextParameter( &stList, vcFileName );
 
-	if(vcFileName == NULL){
-		kPrintf("input filename\n");
-		return;
+	iFileNameLength = kGetNextParameter( &stList, pcFileName );
+
+	if( ( iFileNameLength > ( FILESYSTEM_MAXFILENAMELENGTH - 1 ) ) || ( iFileNameLength == 0 ) )
+	{
+		kPrintf( "Too Long or Too Short File Name\n" );
+		return NULL;
 	}
-	else{
-		// create filename.tmp
-	}
+	pcFileName[ iFileNameLength ] = '\0';
+
+	pstFile = kViFileOpenManager(pcFileName, "w");
+
+//	kViShowFile(pstFile);
 
 	// save cursor
 	kGetCursor( NULL, &iSaveY );
@@ -61,8 +162,10 @@ const void kViManager( const char* pcParameterBuffer ){
 					kPrintStringXY( iCursorX - 1, iCursorY, " ");
 					kSetCursor( iCursorX - 1, iCursorY );
 					vcEditorCommandBuffer[ --iEditorCommandBufferIndex ] = '\0';
-				}
-				else if( bKey == KEY_UP){
+				}else if( bKey == KEY_ENTER){
+					kGetCursor( &iCursorX, &iCursorY );
+					kSetCursor( 0, iCursorY + 1);
+				}else if( bKey == KEY_UP){
 					kGetCursor(&iSaveEditorCursorX, &iSaveEditorCursorY);
 					kSetCursor(iSaveEditorCursorX, --iSaveEditorCursorY);
 				}
@@ -77,13 +180,16 @@ const void kViManager( const char* pcParameterBuffer ){
 				else if( bKey == KEY_RIGHT){
 					kGetCursor(&iSaveEditorCursorX, &iSaveEditorCursorY);
 					kSetCursor(++iSaveEditorCursorX, iSaveEditorCursorY);
-				}
-				else if(iEditorBufferIndex < CONSOLE_WIDTH * CONSOLE_HEIGHT){
+				}else if(iEditorBufferIndex < CONSOLE_WIDTH * CONSOLE_HEIGHT){
+					if(('9' >= bKey) && (bKey >= '0') || ('F' >= bKey) && (bKey >= 'A') ||
+							('f' >= bKey) && (bKey >= 'a')){
 					vcEditorBuffer[ iEditorBufferIndex++ ] = bKey;
 					kPrintf( "%c", bKey );
-				}	
-			}
-		}	
+				}
+			}	
+		}
+}
+			
 		// commend mode
 		else{
 			// delete
@@ -115,7 +221,7 @@ const void kViManager( const char* pcParameterBuffer ){
 					}
 					else{
 						vcEditorCommandBuffer[ iEditorCommandBufferIndex ] = '\0';
-						kExecuteEditorCommand( vcEditorCommandBuffer );
+						kExecuteEditorCommand( vcEditorCommandBuffer, pstFile );
 					}
 				}
 
@@ -144,9 +250,9 @@ const void kViManager( const char* pcParameterBuffer ){
 
 					if((iEditorCommandBufferIndex == 0) && (tmpX != 0)){
 						for(int i = 0; i < tmpX; i++){
-						kGetCursor(&iCursorX, &iCursorY);
-						kPrintStringXY( iCursorX - 1, iCursorY, " ");
-						kSetCursor( iCursorX - 1, iCursorY );
+							kGetCursor(&iCursorX, &iCursorY);
+							kPrintStringXY( iCursorX - 1, iCursorY, " ");
+							kSetCursor( iCursorX - 1, iCursorY );
 						}
 					}
 					vcEditorCommandBuffer[ iEditorCommandBufferIndex++ ] = bKey;
@@ -159,9 +265,44 @@ const void kViManager( const char* pcParameterBuffer ){
 	}
 }
 
-void kExecuteEditorCommand( const char* pcEditorCommandBuffer){
+void kExecuteEditorCommand( const char* pcEditorCommandBuffer, FILE* pstFile){
 	int iEditorCommandLength = kStrLen( pcEditorCommandBuffer );
+	
 	if(kMemCmp(pcEditorCommandBuffer, ":wq", iEditorCommandLength) == 0){
+CHARACTER* fileScreen = (CHARACTER *)CONSOLE_VIDEOMEMORYADDRESS;
+		BYTE bFileBuffer[ CONSOLE_WIDTH * 23 ];
+		BYTE bTmp = '\0';
+
+		for(int i = CONSOLE_WIDTH; i < CONSOLE_WIDTH * 21; i++){ 
+			bFileBuffer[i] = fileScreen[i].bCharactor;
+		}
+kSetCursor(0, 10);
+		for(int i = 0; i < CONSOLE_WIDTH * 23; i++){
+
+			if(('9' >= bFileBuffer[i]) && (bFileBuffer[i] >= '0')){
+				bTmp = bFileBuffer[i] - 48;
+				bFileBuffer[i] = '\0';
+				//kPrintf( "%x", bKey - 48);
+			}else if(('F' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'A')){
+				bTmp = bFileBuffer[i] - 55;
+				bFileBuffer[i] = '\0';
+				//kPrintf( "%x", bKey - 55);
+			}else if(('f' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'a')){
+				bTmp = bFileBuffer[i] - 87;
+				bFileBuffer[i] = '\0';
+				//kPrintf( "%x", bKey - 87);
+			}
+
+			if(bTmp != '\0'){
+kPrintf("%X", bTmp);
+			kWriteFile(bTmp,1,1, pstFile);
+				// bTmp -> writeFile gogo
+			}
+			bTmp = '\0';
+		}
+
+
+
 
 	}
 	else{
