@@ -76,5 +76,4 @@ clean:
 	make -C 02.Kernel64 clean
 	make -C 04.Utility clean
 	rm -f Disk.img	
-	rm -f HDD.img	
 	rm -f ImageMaker.exe
