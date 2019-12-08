@@ -266,6 +266,7 @@ void SSU_srand(unsigned int seed);
 int SSU_rand(void);
 
 //Fork
-QWORD kForkTask( void );
+TCB* kForkTask( void );
+QWORD kFork( void );
 void kForkTest( void );
 #endif /*__TASK_H__*/

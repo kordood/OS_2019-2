@@ -15,6 +15,11 @@ static SCHEDULER gs_stScheduler;
 static TCBPOOLMANAGER gs_stTCBPoolManager;
 
 static QWORD gs_qwTicketCount;
+static QWORD gs_qwAllocatedTask = 0;
+static QWORD gs_qwEntryPointAddress;
+BOOL chk = 0;
+//QWORD rc;
+TCB* gs_ForkedTask;
 //==============================================================================
 //  태스크 풀과 태스크 관련
 //==============================================================================
@@ -180,6 +185,61 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
  *  태스크를 fork
  *      태스크 ID에 따라서 스택 풀에서 스택 자동 할당
  */
+TCB* kForkTask( void )
+{
+    BOOL bPreviousFlag = kLockForSystemData();
+    //TCB* pstProcess = gs_stScheduler.pstRunningTask;
+    
+/**    
+    __asm__ __volatile__(
+            //"mov %0, %%rax\n\t"
+            //"call %%rax\n\t"
+            //"pop %%rax\n\t"
+            //"mov %%rax, %0\n\t"
+            //"push %%rax\n\t"
+            //"ret \n\t"
+            :"=m"(var));
+    kPrintf("rip by asm: %Q\n", var);
+   **/ 
+
+    TCB* pstProcess = kGetProcessByThread( kGetRunningTask() );
+    //kPrintf("memory address current: %Q\n", pstProcess->pvMemoryAddress);
+    //kPrintf("memory size current: %Q\n", pstProcess->qwMemorySize);
+    //kPrintf("entry point address current: %Q\n",
+    //        (QWORD)(pstProcess->stContext.vqRegister[TASK_RIPOFFSET]));
+
+    //QWORD qwFlags = TASK_FLAGS_HIGHEST | TASK_FLAGS_THREAD;
+    void* pvMemoryAddress = 0x1200010 + (gs_qwAllocatedTask*0x200000); //gs_stScheduler.qwForkAddress;
+    gs_qwAllocatedTask++;
+    QWORD qwMemorySize = 0x200000; //0x1000;
+    //gs_stScheduler.qwForkAddress += qwMemorySize;
+    QWORD qwFlags = pstProcess->qwFlags;
+    //void* pvMemoryAddress = pstProcess->pvMemoryAddress;
+    //QWORD qwMemorySize = pstProcess->qwMemorySize;
+    //QWORD qwEntryPointAddress = 0x20eaf1;
+    //kPrintf("start\n");
+    //QWORD qwEntryPointAddress = kGetRIP();
+    //kPrintf("etr %x\n", qwEntryPointAddress);
+    //while(1);
+    //kPrintf("rip: %Q\n", qwEntryPointAddress);
+    //QWORD qwEntryPointAddress = (QWORD)(pstProcess->stContext.vqRegister[ TASK_RIPOFFSET ]);
+    //QWORD qwEntryPointAddress = (QWORD) kTestTask2; 
+    //QWORD qwEntryPointAddress = 0;
+    //kPrintf("%Q\n", qwFlags);
+    TCB* ForkedTask = kCreateTask(qwFlags, pvMemoryAddress, qwMemorySize, gs_qwEntryPointAddress);
+    //TCB* ForkedTask = kCreateTask(qwFlags, 0, 0, gs_qwEntryPointAddress);
+    //kPrintf("memory address: %Q\n", pvMemoryAddress);
+    //kPrintf("memory size: %Q\n", qwMemorySize);
+    //kPrintf("entry point address: %Q\n", gs_qwEntryPointAddress);
+    //gs_qwEntryPointAddress = kGetRIP();
+    //ForkedTask->stContext.vqRegister[ TASK_RIPOFFSET ] = gs_qwEntryPointAddress;
+
+
+	kUnlockForSystemData( bPreviousFlag );
+
+    return ForkedTask;
+}
+/**
 QWORD kForkTask( void )
 {
 	TCB* pstTask, * pstProcess;
@@ -276,6 +336,8 @@ QWORD kForkTask( void )
 	kUnlockForSystemData( bPreviousFlag );
     return 0;
 }
+**/
+
 
 /**
  *  파라미터를 이용해서 TCB를 설정
@@ -1271,15 +1333,67 @@ int SSU_rand(void){
 	return SSU_next;
 }
 
+QWORD kFork( void )
+{
+    QWORD rc;
+    if(chk == 0)
+    {
+        gs_ForkedTask = kForkTask();
+        chk = 1;
+    }
+
+    BOOL bPreviousFlag = kLockForSystemData();
+    TCB* currentTask = gs_stScheduler.pstRunningTask;
+    //자식 프로세스라면
+    if(gs_ForkedTask != NULL && currentTask->stLink.qwID == gs_ForkedTask->stLink.qwID)
+    {
+        rc = 0;
+    }
+    else{ //부모 프로세스라면
+        rc = gs_ForkedTask->stLink.qwID;
+    }
+    kUnlockForSystemData( bPreviousFlag );
+
+    return rc;
+}
+
 /**
   * process fork
 **/
 void kForkTest(void)
 {
-    //while(1){
-    BOOL bPreviousFlag;
-    bPreviousFlag = kLockForSystemData();
-    QWORD rc = kForkTask();
+    chk = 0;
+    kPrintf("hello world( qwID: %Q )\n", (QWORD)gs_stScheduler.pstRunningTask->stLink.qwID);
+    gs_qwEntryPointAddress = kGetRIP();
+    //gs_ForkedTask->stContext.vqRegister[ TASK_RIPOFFSET ] = gs_qwEntryPointAddress;
+    QWORD rc = kFork(); //여기가 fork 시점
+    /**
+    if(rc>0)
+        gs_qwEntryChange = kGetRIP();
+        **/
+    //kPrintf("for child: %Q\n", gs_qwEntryChange);
+    //kPrintf("rip: %Q\n", gs_qwEntryPointAddress);
+    //ForkedTask->stContext.vqRegister[ TASK_RIPOFFSET ] = gs_qwEntryPointAddress;
+    //kPrintf("forked rip: %Q\n", ForkedTask->stContext.vqRegister[ TASK_RIPOFFSET ]);
+
+    //kPrintf("rc: %Q\n", rc);
+    
+    if(rc <0)
+        kPrintf("fork failed\n");
+    else if(rc == 0) //child
+    {
+        kPrintf("hello, I am child\n");
+        kSchedule();
+    }
+    else
+    {
+        kPrintf("hello, I am parent\n");
+        //chk = 1;
+    }
+
+    kPrintf("done\n");
+    
+    return;
     /**
     kPrintf("rc: %Q\n", rc);
     if(rc < 0) {
@@ -1290,6 +1404,4 @@ void kForkTest(void)
         kPrintf("hello, I am parent\n");
     }
     **/
-    kUnlockForSystemData( bPreviousFlag );
-    //}
 }
