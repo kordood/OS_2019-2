@@ -5,11 +5,11 @@ FILE* kViFileOpenManager(const char *pcFileName, const char* pcMode){
 
 	return kOpenFile(pcFileName,pcMode);
 
-//	kLock( &( gs_stFileSystemManager.stMutex ) );
+	//	kLock( &( gs_stFileSystemManager.stMutex ) );
 
 
-/*	int iDirectoryEntryOffset;
-	DIRECTORYENTRY stEntry;
+	/*	int iDirectoryEntryOffset;
+		DIRECTORYENTRY stEntry;
 
 
 	// 파일이 존재하는가 확인
@@ -18,40 +18,40 @@ FILE* kViFileOpenManager(const char *pcFileName, const char* pcMode){
 
 	//파일 존재 안함
 	if(iDirectoryEntryOffset == -1){
-		if(knCreateFile( pcFileName, &stEntry, &iDirectoryEntryOffset ) == FALSE){
-//			kUnlock( & ( gs_stFileSystemManager.stMutex ) );
-			return NULL ; 
-		}
+	if(knCreateFile( pcFileName, &stEntry, &iDirectoryEntryOffset ) == FALSE){
+	//			kUnlock( & ( gs_stFileSystemManager.stMutex ) );
+	return NULL ; 
+	}
 
 
-		pstFile = knAllocateFileDirectoryHandle();
+	pstFile = knAllocateFileDirectoryHandle();
 
-		if(pstFile = NULL){
-//			kUnlock( & ( gs_stFileSystemManager.stMutex ) );
-			return NULL;
-		}
+	if(pstFile = NULL){
+	//			kUnlock( & ( gs_stFileSystemManager.stMutex ) );
+	return NULL;
+	}
 
-		pstFile->bType = FILESYSTEM_TYPE_FILE;
-		pstFile->stFileHandle.iDirectoryEntryOffset = iDirectoryEntryOffset;
-		pstFile->stFileHandle.dwFileSize = stEntry.dwFileSize;
-		pstFile->stFileHandle.dwStartClusterIndex = stEntry.dwStartClusterIndex;
-		pstFile->stFileHandle.dwCurrentClusterIndex = stEntry.dwStartClusterIndex;
-		pstFile->stFileHandle.dwPreviousClusterIndex = stEntry.dwStartClusterIndex;
-		pstFile->stFileHandle.dwCurrentOffset = 0;
+	pstFile->bType = FILESYSTEM_TYPE_FILE;
+	pstFile->stFileHandle.iDirectoryEntryOffset = iDirectoryEntryOffset;
+	pstFile->stFileHandle.dwFileSize = stEntry.dwFileSize;
+	pstFile->stFileHandle.dwStartClusterIndex = stEntry.dwStartClusterIndex;
+	pstFile->stFileHandle.dwCurrentClusterIndex = stEntry.dwStartClusterIndex;
+	pstFile->stFileHandle.dwPreviousClusterIndex = stEntry.dwStartClusterIndex;
+	pstFile->stFileHandle.dwCurrentOffset = 0;
 
-//		kUnlock( & ( gs_stFileSystemManager.stMutex ) );
+	//		kUnlock( & ( gs_stFileSystemManager.stMutex ) );
 	}
 
 	//파일 존재 함
 	else{
-		pstFile = fopen(pcFileName, "r");
-		//kReadFile(void* buffer, DWORD dwSize, DWORD dwCount, FILE* pstFile)
+	pstFile = fopen(pcFileName, "r");
+	//kReadFile(void* buffer, DWORD dwSize, DWORD dwCount, FILE* pstFile)
 	}
 
 	return pstFile;
 
 */
-	
+
 }
 
 
@@ -62,35 +62,35 @@ void kViShowFile( FILE* pstFile ){
 	BYTE bKey;
 
 	while( 1 )
-    {
-        if( fread( &bKey, 1, 1, pstFile ) != 1 )
-        {
-            break;
-        }
-        kPrintf( "%c", bKey );
+	{
+		if( fread( &bKey, 1, 1, pstFile ) != 1 )
+		{
+			break;
+		}
+		kPrintf( "%c", bKey );
 
-        // ¸¸¾à ¿£ÅÍ Å°ÀÌ¸é ¿£ÅÍ Å° È½¼ö¸¦ Áõ°¡½ÃÅ°°í 20¶óÀÎ±îÁö Ãâ·ÂÇß´Ù¸é 
-        // ´õ Ãâ·ÂÇÒÁö ¿©ºÎ¸¦ ¹°¾îº½
-        if( bKey == KEY_ENTER )
-        {
-            iEnterCount++;
+		// ¸¸¾à ¿£ÅÍ Å°ÀÌ¸é ¿£ÅÍ Å° È½¼ö¸¦ Áõ°¡½ÃÅ°°í 20¶óÀÎ±îÁö Ãâ·ÂÇß´Ù¸é 
+		// ´õ Ãâ·ÂÇÒÁö ¿©ºÎ¸¦ ¹°¾îº½
+		if( bKey == KEY_ENTER )
+		{
+			iEnterCount++;
 
-            if( ( iEnterCount != 0 ) && ( ( iEnterCount % 20 ) == 0 ) )
-            {
-                kPrintf( "Press any key to continue... ('q' is exit) : " );
-                if( kGetCh() == 'q' )
-                {
-                    kPrintf( "\n" );
-                    break;
-                }
-                kPrintf( "\n" );
-                iEnterCount = 0;
-            }
-        }
-    }
-    
+			if( ( iEnterCount != 0 ) && ( ( iEnterCount % 20 ) == 0 ) )
+			{
+				kPrintf( "Press any key to continue... ('q' is exit) : " );
+				if( kGetCh() == 'q' )
+				{
+					kPrintf( "\n" );
+					break;
+				}
+				kPrintf( "\n" );
+				iEnterCount = 0;
+			}
+		}
+	}
+
 	fclose( pstFile );
-	
+
 }
 
 void kSaveFile(FILE* pstFile){
@@ -116,7 +116,7 @@ const void kViManager( const char* pcParameterBuffer ){
 	int iSaveEditorCursorX = 0, iSaveEditorCursorY = 1;
 
 	BYTE bKey;
-	
+
 	kInitializeParameter( &stList, pcParameterBuffer );
 
 	iFileNameLength = kGetNextParameter( &stList, pcFileName );
@@ -130,7 +130,7 @@ const void kViManager( const char* pcParameterBuffer ){
 
 	pstFile = kViFileOpenManager(pcFileName, "w");
 
-//	kViShowFile(pstFile);
+	//	kViShowFile(pstFile);
 
 	// save cursor
 	kGetCursor( NULL, &iSaveY );
@@ -183,13 +183,13 @@ const void kViManager( const char* pcParameterBuffer ){
 				}else if(iEditorBufferIndex < CONSOLE_WIDTH * CONSOLE_HEIGHT){
 					if(('9' >= bKey) && (bKey >= '0') || ('F' >= bKey) && (bKey >= 'A') ||
 							('f' >= bKey) && (bKey >= 'a')){
-					vcEditorBuffer[ iEditorBufferIndex++ ] = bKey;
-					kPrintf( "%c", bKey );
-				}
-			}	
+						vcEditorBuffer[ iEditorBufferIndex++ ] = bKey;
+						kPrintf( "%c", bKey );
+					}
+				}	
+			}
 		}
-}
-			
+
 		// commend mode
 		else{
 			// delete
@@ -270,20 +270,26 @@ void kExecuteEditorCommand( const char* pcEditorCommandBuffer, FILE* pstFile){
 	int cnt = 0;
 	int writecnt = 0;
 	int flag = 0;
-	
-	if(kMemCmp(pcEditorCommandBuffer, ":wq", iEditorCommandLength) == 0){
+	int cntt= 0;
+
+	if(kMemCmp(pcEditorCommandBuffer, ":w", iEditorCommandLength + 1) == 0){
 		CHARACTER* fileScreen = (CHARACTER *)CONSOLE_VIDEOMEMORYADDRESS;
 		BYTE bFileBuffer[ CONSOLE_WIDTH * 23 ] = {'\0',};
 		BYTE bTmp = '\0';
 		BYTE bWrite = '\0';
+		BYTE bChar;
 
 		for(int i = CONSOLE_WIDTH; i < CONSOLE_WIDTH * 21; i++){ 
-			bFileBuffer[i] = fileScreen[i].bCharactor;
+			//if(fileScreen[i].bCharactor != '\0')
+			bChar = fileScreen[i].bCharactor;
+			if((('9' >= bChar) && (bChar >= '0'))||(('F' >= bChar) && (bChar >= 'A'))||(('f' >= bChar) && (bChar >= 'a')))
+			{
+				bFileBuffer[cntt++] = bChar;
+			}
 		}
-		
-		kSetCursor(0, 10);
-		
-		for(int i = 0; i < CONSOLE_WIDTH * 23; i++){
+		//for(int i = 0; i < cntt; i++) kPrintf("@");//kPrintf("%x, ", bFileBuffer[i]);
+
+		for(int i = 0; i < cntt; i++){
 
 			if(('9' >= bFileBuffer[i]) && (bFileBuffer[i] >= '0')){
 				bTmp = bFileBuffer[i] - 48;
@@ -309,7 +315,7 @@ void kExecuteEditorCommand( const char* pcEditorCommandBuffer, FILE* pstFile){
 				else if(flag == 0){
 					bWrite = bTmp<<4;
 					flag = 1;
-				
+
 				}
 			}
 			else if(('f' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'a')){
@@ -323,33 +329,29 @@ void kExecuteEditorCommand( const char* pcEditorCommandBuffer, FILE* pstFile){
 				else if(flag == 0){
 					bWrite = bTmp<<4;
 					flag = 1;
-				
+
 				}
 			}
 
-			/*if(cnt%2 != 0 ){
-				bWrite = bTmp<<4;
+			if((i == cntt - 1) && (cntt % 2 == 1)){
+				kWriteFile(&bWrite,1,1, pstFile);
+				bWrite='\0';
+				writecnt++;
+				
 			}
-			else{
-				bWrite |= bTmp;
-
-			}
-*/
-			if(flag == 0 && bWrite != '\0'){
-				kPrintf("%x\n", bWrite);
+			if(flag == 0){
 				kWriteFile(&bWrite,1,1, pstFile);
 				bWrite='\0';
 				writecnt++;
 
 			}
-//			else if(flag == 0 && )
+			//			else if(flag == 0 && )
 			bTmp = '\0';
 			//bWrite = '\0';
-			
+
 		}
 
 
-				kPrintf("\n%d",cnt);
 
 
 	}
