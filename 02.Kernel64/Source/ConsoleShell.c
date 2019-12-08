@@ -19,6 +19,7 @@
 #include "DynamicMemory.h"
 #include "HardDisk.h"
 #include "FileSystem.h"
+#include "ViEditor.h"
 
 // 커맨드 테이블 정의
 SHELLCOMMANDENTRY gs_vstCommandTable[] =
@@ -63,15 +64,7 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "testfileio", "Test File I/O Function", kTestFileIO },
         { "testperformance", "Test File Read/WritePerformance", kTestPerformance },
         { "flush", "Flush File System Cache", kFlushCache },
-//	{ "strcat", "String Cat(dummy)", kDummy },
-//	{ "stra", "String (dummy)", kDummy },
-//	{ "strcbat", "String (dummy)", kDummy },
-//	{ "strcact", "String (dummy)", kDummy },
-//	{ "strcats", "String (dummy)", kDummy },
-//	{ "strcp", "String Copy(dummy)", kDummy },
-//	{ "rm", "Remove File(dummy)", kDummy },
-//	{ "rmdir", "Remove Directory(dummy)", kDummy },
-//	{ "pwd", "Present Working Directory(dummy)", kDummy },
+	 { "vi", "execute vi", kViManager },	
     { "pagefault", "Cause page fault", kPagefault },
     { "protfault", "Cause protection fault", kProtectionfault },
 };                                     
