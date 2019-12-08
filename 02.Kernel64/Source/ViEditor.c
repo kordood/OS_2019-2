@@ -267,41 +267,89 @@ const void kViManager( const char* pcParameterBuffer ){
 
 void kExecuteEditorCommand( const char* pcEditorCommandBuffer, FILE* pstFile){
 	int iEditorCommandLength = kStrLen( pcEditorCommandBuffer );
+	int cnt = 0;
+	int writecnt = 0;
+	int flag = 0;
 	
 	if(kMemCmp(pcEditorCommandBuffer, ":wq", iEditorCommandLength) == 0){
-CHARACTER* fileScreen = (CHARACTER *)CONSOLE_VIDEOMEMORYADDRESS;
-		BYTE bFileBuffer[ CONSOLE_WIDTH * 23 ];
+		CHARACTER* fileScreen = (CHARACTER *)CONSOLE_VIDEOMEMORYADDRESS;
+		BYTE bFileBuffer[ CONSOLE_WIDTH * 23 ] = {'\0',};
 		BYTE bTmp = '\0';
+		BYTE bWrite = '\0';
 
 		for(int i = CONSOLE_WIDTH; i < CONSOLE_WIDTH * 21; i++){ 
 			bFileBuffer[i] = fileScreen[i].bCharactor;
 		}
-kSetCursor(0, 10);
+		
+		kSetCursor(0, 10);
+		
 		for(int i = 0; i < CONSOLE_WIDTH * 23; i++){
 
 			if(('9' >= bFileBuffer[i]) && (bFileBuffer[i] >= '0')){
 				bTmp = bFileBuffer[i] - 48;
 				bFileBuffer[i] = '\0';
-				//kPrintf( "%x", bKey - 48);
-			}else if(('F' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'A')){
+				cnt++;
+				if(flag == 1){
+					bWrite |= bTmp;
+					flag = 0;
+				}
+				else if(flag == 0){
+					bWrite = bTmp<<4;
+					flag = 1;
+				}
+			}
+			else if(('F' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'A')){
 				bTmp = bFileBuffer[i] - 55;
 				bFileBuffer[i] = '\0';
-				//kPrintf( "%x", bKey - 55);
-			}else if(('f' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'a')){
+				cnt++;
+				if(flag == 1){
+					bWrite |= bTmp;
+					flag = 0;
+				}
+				else if(flag == 0){
+					bWrite = bTmp<<4;
+					flag = 1;
+				
+				}
+			}
+			else if(('f' >= bFileBuffer[i]) && (bFileBuffer[i] >= 'a')){
 				bTmp = bFileBuffer[i] - 87;
 				bFileBuffer[i] = '\0';
-				//kPrintf( "%x", bKey - 87);
+				cnt++;
+				if(flag == 1){
+					bWrite |= bTmp;
+					flag = 0;
+				}
+				else if(flag == 0){
+					bWrite = bTmp<<4;
+					flag = 1;
+				
+				}
 			}
 
-			if(bTmp != '\0'){
-kPrintf("%X", bTmp);
-			kWriteFile(bTmp,1,1, pstFile);
-				// bTmp -> writeFile gogo
+			/*if(cnt%2 != 0 ){
+				bWrite = bTmp<<4;
 			}
+			else{
+				bWrite |= bTmp;
+
+			}
+*/
+			if(flag == 0 && bWrite != '\0'){
+				kPrintf("%x\n", bWrite);
+				kWriteFile(&bWrite,1,1, pstFile);
+				bWrite='\0';
+				writecnt++;
+
+			}
+//			else if(flag == 0 && )
 			bTmp = '\0';
+			//bWrite = '\0';
+			
 		}
 
 
+				kPrintf("\n%d",cnt);
 
 
 	}
