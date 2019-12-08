@@ -14,6 +14,11 @@ static SCHEDULER gs_stScheduler;
 static TCBPOOLMANAGER gs_stTCBPoolManager;
 
 static QWORD gs_qwTicketCount;
+static QWORD gs_qwAllocatedTask = 0;
+static QWORD gs_qwEntryPointAddress;
+BOOL chk = 0;
+BOOL isChild = 0;
+TCB* gs_ForkedTask;
 //==============================================================================
 //  태스크 풀과 태스크 관련
 //==============================================================================
@@ -173,6 +178,25 @@ TCB* kCreateTask( QWORD qwFlags, void* pvMemoryAddress, QWORD qwMemorySize,
 	kUnlockForSystemData( bPreviousFlag );
 
 	return pstTask;
+}
+/**
+ *  태스크를 fork
+ *      태스크 ID에 따라서 스택 풀에서 스택 자동 할당
+ */
+TCB* kForkTask( void )
+{
+    BOOL bPreviousFlag = kLockForSystemData();
+
+    TCB* pstProcess = kGetProcessByThread( kGetRunningTask() );
+    void* pvMemoryAddress = 0x1200010 + (gs_qwAllocatedTask*0x200000);
+    gs_qwAllocatedTask++;
+    QWORD qwMemorySize = 0x200000; 
+    QWORD qwFlags = pstProcess->qwFlags;
+    TCB* ForkedTask = kCreateTask(qwFlags, pvMemoryAddress, qwMemorySize, gs_qwEntryPointAddress);
+
+	kUnlockForSystemData( bPreviousFlag );
+
+    return ForkedTask;
 }
 
 /**
@@ -1167,4 +1191,62 @@ SSU_srand(unsigned int seed){
 int SSU_rand(void){
 	SSU_next = (SSU_next * 1103515245 + 5571031)>>16;
 	return SSU_next;
+}
+
+QWORD kFork( void )
+{
+    QWORD rc;
+    if(chk == 0)
+    {
+        gs_ForkedTask = kForkTask();
+        chk = 1;
+    }
+
+    BOOL bPreviousFlag = kLockForSystemData();
+    TCB* currentTask = gs_stScheduler.pstRunningTask;
+    //자식 프로세스라면
+    if(gs_ForkedTask != NULL && currentTask->stLink.qwID == gs_ForkedTask->stLink.qwID)
+    {
+        isChild = 1;
+        rc = 0;
+    }
+    else{ //부모 프로세스라면
+        while(isChild == 0)
+            kSchedule();
+        rc = gs_ForkedTask->stLink.qwID;
+    }
+    kUnlockForSystemData( bPreviousFlag );
+
+    return rc;
+}
+
+/**
+  * process fork
+**/
+void kForkTest(void)
+{
+    chk = 0;
+    isChild = 0;
+    kPrintf("hello world( qwID: %Q )\n", (QWORD)gs_stScheduler.pstRunningTask->stLink.qwID);
+    gs_qwEntryPointAddress = kGetRIP();
+    QWORD rc = kFork(); //여기가 fork 시점
+    
+    if(rc <0)
+        kPrintf("fork failed\n");
+    else if(rc == 0) //child
+    {
+        kPrintf("hello, I am child (pid: %Q)\n",
+                (QWORD)((gs_stScheduler.pstRunningTask)->stLink.qwID));//, current->stLink.qwID);
+        while( 1 )
+            kSleep( 1 );
+        //kExitTask();
+    }
+    else
+    {
+        kPrintf("hello, I am parent of %Q (pid: %Q)\n", 
+                (QWORD)gs_ForkedTask->stLink.qwID, (QWORD)((gs_stScheduler.pstRunningTask)->stLink.qwID));
+    }
+
+    //kSchedule();
+
 }

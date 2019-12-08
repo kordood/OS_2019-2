@@ -35,6 +35,7 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "cpuspeed", "Measure Processor Speed", kMeasureProcessorSpeed },
         { "date", "Show Date And Time", kShowDateAndTime },
         { "createtask", "Create Task, ex)createtask 1(type) 10(count)", kCreateTestTask },
+        { "forktask", "Fork Task", kForkTest},
         { "changepriority", "Change Task Priority, ex)changepriority 1(ID) 2(Priority)",
                 kChangeTaskPriority },
         { "tasklist", "Show Task List", kShowTaskList },

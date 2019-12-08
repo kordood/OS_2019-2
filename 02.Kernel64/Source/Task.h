@@ -265,4 +265,9 @@ static unsigned long int SSU_next = 1;
 void SSU_srand(unsigned int seed);
 int SSU_rand(void);
 
+//Fork
+TCB* kForkTask( void );
+QWORD kFork( void );
+void kForkTest( void );
+
 #endif /*__TASK_H__*/

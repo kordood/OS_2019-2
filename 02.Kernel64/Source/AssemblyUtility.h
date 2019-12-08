@@ -17,6 +17,7 @@
 //  ÇÔ¼ö
 //
 ////////////////////////////////////////////////////////////////////////////////
+QWORD kGetRIP( void );
 BYTE kInPortByte( WORD wPort );
 void kOutPortByte( WORD wPort, BYTE bData );
 WORD kInPortWord( WORD wPort );

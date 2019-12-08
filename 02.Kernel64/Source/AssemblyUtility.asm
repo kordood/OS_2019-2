@@ -13,8 +13,16 @@ global kInPortByte, kOutPortByte, kInPortWord, kOutPortWord
 global kLoadGDTR, kLoadTR, kLoadIDTR
 global kEnableInterrupt, kDisableInterrupt, kReadRFLAGS
 global kReadTSC
-global kSwitchContext, kHlt, kTestAndSet
+global kSwitchContext, kHlt, kTestAndSet, kGetRIP
 global kInitializeFPU, kSaveFPUContext, kLoadFPUContext, kSetTS, kClearTS
+
+kGetRIP:
+    push rbp
+    mov rbp, rsp
+    mov rax, qword[ rbp + 8 ]
+    pop rbp
+    ret
+
 
 ; 포트로부터 1바이트를 읽음
 ;   PARAM: 포트 번호
