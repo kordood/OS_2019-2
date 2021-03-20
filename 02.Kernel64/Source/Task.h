@@ -72,17 +72,6 @@
 #define TASK_FLAGS_LOWEST             4
 #define TASK_FLAGS_WAIT               0xFF          
 
-
-//태스크의 우선순위에 따른 티켓 수
-#define TASK_HIGHEST_TICKET			  50
-#define TASK_HIGH_TICKET			  40	
-#define TASK_MEDIUM_TICKET			  30
-#define TASK_LOW_TICKET				  20
-#define TASK_LOWEST_TICKET			  10
-//전체 티켓 수
-#define TICKET_MAX					  100000
-#define STRIDE_N					  1000
-
 // 태스크의 플래그
 #define TASK_FLAGS_ENDTASK            0x8000000000000000
 #define TASK_FLAGS_SYSTEM             0x4000000000000000
@@ -117,6 +106,7 @@ typedef struct kContextStruct
 } CONTEXT;
 
 // 태스크(프로세스 및 스레드)의 상태를 관리하는 자료구조
+// FPU 콘텍스트가 추가되었기 때문에 자료구조의 크기가 16의 배수로 정렬되어야 함
 typedef struct kTaskControlBlockStruct
 {
     // 다음 데이터의 위치와 ID
@@ -151,18 +141,12 @@ typedef struct kTaskControlBlockStruct
     // 스택의 어드레스와 크기
     void* pvStackAddress;
     QWORD qwStackSize;
-	
+    
     // FPU 사용 여부
     BOOL bFPUUsed;
     
     // TCB 전체를 16바이트 배수로 맞추기 위한 패딩
     char vcPadding[ 11 ];
-
-	//티켓 수
-	QWORD qwTicket;
-	QWORD qwStride;
-	QWORD qwPass;
-	QWORD qwSwitchCount;
 } TCB;
 
 // TCB 풀의 상태를 관리하는 자료구조
@@ -230,8 +214,6 @@ void kInitializeScheduler( void );
 void kSetRunningTask( TCB* pstTask );
 TCB* kGetRunningTask( void );
 static TCB* kGetNextTaskToRun( void );
-static TCB* kGetNextTaskToRun_Lottery( void );
-static TCB* kGetNextTaskToRun_Stride( void );
 static BOOL kAddTaskToReadyList( TCB* pstTask );
 void kSchedule( void );
 BOOL kScheduleInInterrupt( void );
@@ -260,14 +242,10 @@ void kHaltProcessorByLoad( void );
 QWORD kGetLastFPUUsedTaskID( void );
 void kSetLastFPUUsedTaskID( QWORD qwTaskID );
 
-//SSU_rand
-static unsigned long int SSU_next = 1;
-void SSU_srand(unsigned int seed);
-int SSU_rand(void);
-
 //Fork
 TCB* kForkTask( void );
 QWORD kFork( void );
 void kForkTest( void );
+void kForkExecTest( void );
 
 #endif /*__TASK_H__*/

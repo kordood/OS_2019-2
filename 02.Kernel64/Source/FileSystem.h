@@ -13,7 +13,7 @@
 #include "Synchronization.h"
 #include "HardDisk.h"
 #include "CacheManager.h"
-
+#include "ConsoleShell.h"
 ////////////////////////////////////////////////////////////////////////////////
 //
 // 매크로와 함수 포인터
@@ -64,10 +64,15 @@ typedef int (* fWriteHDDSector ) ( BOOL bPrimary, BOOL bMaster, DWORD dwLBA,
 #define fseek       kSeekFile
 #define fclose      kCloseFile
 #define remove      kRemoveFile
+//#define makedir     kMakeDirectory
+#define opendirhand kOpenDirectoryHandler
 #define opendir     kOpenDirectory
+#define removedir   kRemoveDirectory
 #define readdir     kReadDirectory
 #define rewinddir   kRewindDirectory
 #define closedir    kCloseDirectory
+#define isdir       isDirectory
+#define isemptydir  isEmptyDirectory
 
 // MINT 파일 시스템 매크로를 표준 입출력의 매크로를 재정의
 #define SEEK_SET    FILESYSTEM_SEEK_SET
@@ -127,16 +132,31 @@ typedef struct kMBRStruct
     BYTE vbBootLoaderSignature[ 2 ];
 } MBR;
 
+typedef struct kFileCreationTime{
+
+    WORD wYear;
+    BYTE bMonth;
+    BYTE bDayofMonth;
+    
+    BYTE bHour;
+    BYTE bMinute;
+    BYTE bSecond;
+
+}FILECREATIONTIME;
 
 // 디렉터리 엔트리 자료구조
 typedef struct kDirectoryEntryStruct
 {
     // 파일 이름
     char vcFileName[ FILESYSTEM_MAXFILENAMELENGTH ];
+    // 파일 타입
+    BYTE bFileType;
     // 파일의 실제 크기
     DWORD dwFileSize;
     // 파일이 시작하는 클러스터 인덱스
     DWORD dwStartClusterIndex;
+
+    FILECREATIONTIME stFileCreationTime;
 } DIRECTORYENTRY;
 
 #pragma pack( pop )
@@ -230,10 +250,10 @@ static BOOL kWriteCluster( DWORD dwOffset, BYTE* pbBuffer );
 static DWORD kFindFreeCluster( void );
 static BOOL kSetClusterLinkData( DWORD dwClusterIndex, DWORD dwData );
 static BOOL kGetClusterLinkData( DWORD dwClusterIndex, DWORD* pdwData );
-static int kFindFreeDirectoryEntry( void );
-static BOOL kSetDirectoryEntryData( int iIndex, DIRECTORYENTRY* pstEntry );
+static int kFindFreeDirectoryEntry( DWORD dwClusterIndex );
+static BOOL kSetDirectoryEntryData( int iIndex, DIRECTORYENTRY* pstEntry, DWORD dwClusterIndex );
 static BOOL kGetDirectoryEntryData( int iIndex, DIRECTORYENTRY* pstEntry );
-static int kFindDirectoryEntry( const char* pcFileName, DIRECTORYENTRY* pstEntry );
+static int kFindDirectoryEntry( const char* pcFileName, DIRECTORYENTRY* pstEntry, DWORD dwClusterIndex );
 void kGetFileSystemInformation( FILESYSTEMMANAGER* pstManager );
 
 // 캐시 관련 함수
@@ -260,7 +280,10 @@ DWORD kWriteFile( const void* pvBuffer, DWORD dwSize, DWORD dwCount, FILE* pstFi
 int kSeekFile( FILE* pstFile, int iOffset, int iOrigin );
 int kCloseFile( FILE* pstFile );
 int kRemoveFile( const char* pcFileName );
-DIR* kOpenDirectory( const char* pcDirectoryName );
+//DIR* kMakeDirectory( const char* pcDirName );
+DIR* kOpenDirectoryHandler( DWORD dwCluster );
+DIR* kOpenDirectory( const char* pcDirPath);
+DWORD kGetObjectCluster( char* pcDirName );
 struct kDirectoryEntryStruct* kReadDirectory( DIR* pstDirectory );
 void kRewindDirectory( DIR* pstDirectory );
 int kCloseDirectory( DIR* pstDirectory );
@@ -271,7 +294,26 @@ static void* kAllocateFileDirectoryHandle( void );
 static void kFreeFileDirectoryHandle( FILE* pstFile );
 static BOOL kCreateFile( const char* pcFileName, DIRECTORYENTRY* pstEntry, 
         int* piDirectoryEntryIndex );
+static BOOL kCreateDir( const char* pcDirName, DIRECTORYENTRY* pstEntry, 
+        int* piDirectoryEntryIndex );
 static BOOL kFreeClusterUntilEnd( DWORD dwClusterIndex );
 static BOOL kUpdateDirectoryEntry( FILEHANDLE* pstFileHandle );
+
+static BOOL kCreateDirectory( const char* pcDirName, DIRECTORYENTRY* pstEntry, 
+        int* piDirectoryEntryIndex, DWORD dwParentClusterIndex);               //
+ DIRECTORYENTRY* kFindDirectory( DWORD currentCluster );
+ int kRemoveDirectory( const char* pcDirName );
+ void kSetDotInRootDirectory();
+ void kSetDotInDirectory();
+ void kSetClusterIndex(DWORD currentDirectoryClusterIndex);
+ void kSetTmpClusterIndex(DWORD currentDirectoryClusterIndex);
+ BOOL kUpdateDirectory( int piDirectoryEntryIndex,const char* fileName,const char* parentPath, int parentIndex );
+BOOL isDirectory( const char* pcDirName );
+BOOL isEmptyDirectory( const char* pcDirName );
+
+
+ void kPrintPrompt();
+ void kChangeDirectory(const char* pcParameterBuffer);
+ int kGetNextPath(PARAMETERLIST* pstList, char* pcPath);
 
 #endif /*__FILESYSTEM_H__*/

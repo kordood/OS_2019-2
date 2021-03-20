@@ -35,12 +35,12 @@ $(OBJECTDIRECTORY)/EntryPoint.bin: $(SOURCEDIRECTORY)/EntryPoint.s
 # 커널의 C 소스 파일에 대한 의존성 정보 생성
 dep:
 	@echo === Make Dependancy File ===
-	make -C $(OBJECTDIRECTORY) -f ../Makefile InternalDependency
+	make -C $(OBJECTDIRECTORY) -f ../makefile InternalDependency
 	@echo === Dependancy Search Complete ===
 
 # 디렉터리를 오브젝트 파일 디렉터리로 이동해서 의존성 파일 및 실행 파일을 생성
 ExecuteInternalBuild: dep
-	make -C $(OBJECTDIRECTORY) -f ../Makefile Kernel32.elf
+	make -C $(OBJECTDIRECTORY) -f ../makefile Kernel32.elf
 
 # 커널 이미지를 바이너리 파일로 변환
 $(OBJECTDIRECTORY)/Kernel32.elf.bin: ExecuteInternalBuild

@@ -17,7 +17,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////
 #define CONSOLESHELL_MAXCOMMANDBUFFERCOUNT  300
-#define CONSOLESHELL_PROMPTMESSAGE          "MINT64> "
+#define CONSOLESHELL_PROMPTMESSAGE          "MINT64:/"
 
 // 문자열 포인터를 파라미터로 받는 함수 포인터 타입 정의
 typedef void ( * CommandFunction ) ( const char* pcParameter );
@@ -66,9 +66,6 @@ void kExecuteCommand( const char* pcCommandBuffer );
 void kInitializeParameter( PARAMETERLIST* pstList, const char* pcParameter );
 int kGetNextParameter( PARAMETERLIST* pstList, char* pcParameter );
 
-//
-void kExecuteTab( char* pcCommadBuffer, int* iCommandBufferIndex, int tabflag);
-
 // 커맨드를 처리하는 함수
 static void kHelp( const char* pcParameterBuffer );
 static void kCls( const char* pcParameterBuffer );
@@ -101,16 +98,14 @@ static void kMountHDD( const char* pcParameterBuffer );
 static void kFormatHDD( const char* pcParameterBuffer );
 static void kShowFileSystemInformation( const char* pcParameterBuffer );
 static void kCreateFileInRootDirectory( const char* pcParameterBuffer );
+static void kMakeDirectory( const char* pcParamegerBuffer );
+static void kRmDir( const char* pcParameterBuffer );
 static void kDeleteFileInRootDirectory( const char* pcParameterBuffer );
-static void kShowRootDirectory( const char* pcParameterBuffer );
+static void kShowCurrentDirectory( const char* pcParameterBuffer );
 static void kWriteDataToFile( const char* pcParameterBuffer );
 static void kReadDataFromFile( const char* pcParameterBuffer );
 static void kTestFileIO( const char* pcParameterBuffer );
 static void kFlushCache( const char* pcParameterBuffer );
 static void kTestPerformance( const char* pcParameterBuffer );
 
-void kPagefault( const char* pcParameterBuffer );
-void kProtectionfault( const char* pcParameterBuffer );
-
-void kDummy(const char* pcParanegerBuffer);
 #endif /*__CONSOLESHELL_H__*/

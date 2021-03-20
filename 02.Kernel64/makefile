@@ -32,12 +32,12 @@ prepare:
 # 커널의 C 소스 파일에 대한 의존성 정보 생성
 dep:
 	@echo === Make Dependancy File ===
-	make -C $(OBJECTDIRECTORY) -f ../Makefile InternalDependency
+	make -C $(OBJECTDIRECTORY) -f ../makefile InternalDependency
 	@echo === Dependancy Search Complete ===
 
 # 디렉터리를 오브젝트 파일 디렉터리로 이동해서 의존성 파일 및 실행 파일을 생성
 ExecuteInternalBuild: dep
-	make -C $(OBJECTDIRECTORY) -f ../Makefile Kernel64.elf
+	make -C $(OBJECTDIRECTORY) -f ../makefile Kernel64.elf
 
 # 커널 이미지를 바이너리 파일로 변환하여 IA-32e 모드 바이너리 생성
 Kernel64.bin: ExecuteInternalBuild
