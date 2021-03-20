@@ -264,7 +264,7 @@ kHlt:
     ret
     
 ; 테스트와 설정을 하나의 명령으로 처리
-;   Destination과 Compare를 비교하여 같다면, Destination에 Source 값을 삽입
+;	Destination과 Compare를 비교하여 같다면, Destination에 Source 값을 삽입
 ;   PARAM: 값을 저장할 어드레스(Destination, rdi), 비교할 값(Compare, rsi), 
 ;          설정할 값(Source, rdx) 
 kTestAndSet:
