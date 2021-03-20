@@ -55,13 +55,12 @@ BOOL kWaitForACKAndPutOtherScanCode( void )
     BYTE bData;
     BOOL bResult = FALSE;
     
-    // ACK가 오기 전에 키보드 출력 버퍼(포트 0x60)에 키 데이터가 저장될 수 있으므로
+    // ACK가 오기 전에 키보드 출력 버퍼(포트 0x60)에 키 데이터가 저장되어 있을 수 있으므로
     // 키보드에서 전달된 데이터를 최대 100개까지 수신하여 ACK를 확인
     for( j = 0 ; j < 100 ; j++ )
     {
         // 0xFFFF만큼 루프를 수행할 시간이면 충분히 커맨드의 응답이 올 수 있음
-        // 0xFFFF 루프를 수행한 이후에도 출력 버퍼(포트 0x60)가 차 있지 않으면 
-        // 무시하고 읽음
+        // 0xFFFF 루프를 수행한 이후에도 출력 버퍼(포트 0x60)가 차 있지 않으면 무시하고 읽음
         for( i = 0 ; i < 0xFFFF ; i++ )
         {
             // 출력 버퍼(포트 0x60)가 차있으면 데이터를 읽을 수 있음
@@ -77,7 +76,7 @@ BOOL kWaitForACKAndPutOtherScanCode( void )
             bResult = TRUE;
             break;
         }
-        // ACK(0xFA)가 아니면 ASCII 코드로 변환하여 키 큐에 삽입
+        // ACK(0xFA)가 아니면 키보드 큐에 삽입
         else
         {
             kConvertScanCodeAndPutQueue( bData );
@@ -87,7 +86,7 @@ BOOL kWaitForACKAndPutOtherScanCode( void )
 }
 
 /**
- *  키보드를 활성화
+ *  키보드를 활성화 함
  */
 BOOL kActivateKeyboard( void )
 {
@@ -98,8 +97,7 @@ BOOL kActivateKeyboard( void )
     // 인터럽트 불가
     bPreviousInterrupt = kSetInterruptFlag( FALSE );
     
-    // 컨트롤 레지스터(포트 0x64)에 키보드 활성화 커맨드(0xAE)를 전달하여 
-    // 키보드 디바이스 활성화
+    // 컨트롤 레지스터(포트 0x64)에 키보드 활성화 커맨드(0xAE)를 전달하여 키보드 디바이스 활성화
     kOutPortByte( 0x64, 0xAE );
         
     // 입력 버퍼(포트 0x60)가 빌 때까지 기다렸다가 키보드에 활성화 커맨드를 전송
@@ -619,17 +617,13 @@ BOOL kConvertScanCodeAndPutQueue( BYTE bScanCode )
     BOOL bResult = FALSE;
     BOOL bPreviousInterrupt;
 
-    // 스캔 코드를 키 데이터에 삽입
     stData.bScanCode = bScanCode;
-    
-    // 스캔 코드를 ASCII 코드와 키 상태로 변환하여 키 데이터에 삽입
     if( kConvertScanCodeToASCIICode( bScanCode, &( stData.bASCIICode ), 
             &( stData.bFlags ) ) == TRUE )
     {
         // 임계 영역 시작
         bPreviousInterrupt = kLockForSystemData();
         
-        // 키 큐에 삽입
         bResult = kPutQueue( &gs_stKeyQueue, &stData );
 
         // 임계 영역 끝
@@ -640,25 +634,16 @@ BOOL kConvertScanCodeAndPutQueue( BYTE bScanCode )
 }
 
 /**
- *  키 큐에서 키 데이터를 제거
+ *  키 큐에서 데이터를 제거
  */
 BOOL kGetKeyFromKeyQueue( KEYDATA* pstData )
 {
     BOOL bResult;
     BOOL bPreviousInterrupt;
     
-    // 큐가 비었으면 키 데이터를 꺼낼 수 없음
-    /**
-     * if( kIsQueueEmpty( &gs_stKeyQueue ) == TRUE )
-     * {
-     *     return FALSE;
-     * }
-     */
-
     // 임계 영역 시작
     bPreviousInterrupt = kLockForSystemData();
 
-    // 키 큐에서 키 데이터를 제거
     bResult = kGetQueue( &gs_stKeyQueue, pstData );
 
     // 임계 영역 끝
