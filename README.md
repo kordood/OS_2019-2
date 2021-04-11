@@ -34,7 +34,7 @@
     - subdirectory 구현
     - 파일 세부정보 구현
 
-## 추가 기능
+## 추가 구현
 - fork()
   -  호출한 Process의 메모리 공간, 레지스터, PC 값을 복사하여 새로운 Process 생성
 - exec()
